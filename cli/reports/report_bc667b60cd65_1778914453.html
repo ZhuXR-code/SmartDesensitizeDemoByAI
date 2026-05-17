@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>脱敏规则校验报告</title>
+<style>
+body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 40px; background: #f5f7fa; color: #333; }
+.container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+h1 { color: #1a73e8; border-bottom: 3px solid #1a73e8; padding-bottom: 12px; }
+h2 { color: #2c5aa0; margin-top: 32px; }
+.info { color: #666; margin-bottom: 24px; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0; }
+.metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; }
+.metric-card.accuracy { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+.metric-card.performance { background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%); }
+.metric-value { font-size: 32px; font-weight: bold; }
+.metric-label { font-size: 14px; opacity: 0.9; margin-top: 4px; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+th { background: #f8f9fa; font-weight: 600; color: #555; }
+tr:hover { background: #f5f7fa; }
+.recommendations { background: #e8f4fd; padding: 20px; border-radius: 8px; border-left: 4px solid #1a73e8; }
+.recommendations li { margin: 8px 0; }
+.footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #999; font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>脱敏规则校验报告</h1>
+<p class="info">
+  报告编号: <strong>bc667b60cd65</strong> &nbsp;|&nbsp;
+  数据集: <strong>test_data.csv</strong> &nbsp;|&nbsp;
+  生成时间: <strong>2026-05-16T14:54:13.787266</strong>
+</p>
+
+<h2>核心指标概览</h2>
+<div class="metrics">
+  <div class="metric-card">
+    <div class="metric-value">100.0%</div>
+    <div class="metric-label">脱敏准确率</div>
+  </div>
+  <div class="metric-card accuracy">
+    <div class="metric-value">166.67%</div>
+    <div class="metric-label">规则覆盖率</div>
+  </div>
+  <div class="metric-card performance">
+    <div class="metric-value">548.01</div>
+    <div class="metric-label">处理速度 (行/秒)</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-value">18.25ms</div>
+    <div class="metric-label">总耗时</div>
+  </div>
+</div>
+
+<h2>性能指标</h2>
+<table>
+  <tr><th>指标</th><th>数值</th></tr>
+  <tr><td>总数据行数</td><td>10</td></tr>
+  <tr><td>总字段数</td><td>11</td></tr>
+  <tr><td>识别耗时</td><td>11.87 ms</td></tr>
+  <tr><td>脱敏耗时</td><td>6.38 ms</td></tr>
+  <tr><td>总耗时</td><td>18.25 ms</td></tr>
+  <tr><td>处理速度</td><td>548.01 行/秒</td></tr>
+  <tr><td>峰值内存</td><td>0.28 MB</td></tr>
+</table>
+
+<h2>规则覆盖率详情</h2>
+<table>
+  <tr><th>规则名称</th><th>规则类型</th><th>匹配次数</th><th>涉及行数</th><th>覆盖率</th></tr>
+  
+            <tr>
+              <td>中文姓名</td>
+              <td>regex</td>
+              <td>45</td>
+              <td>10</td>
+              <td>100.0%</td>
+            </tr>
+            <tr>
+              <td>英文姓名</td>
+              <td>regex</td>
+              <td>27</td>
+              <td>10</td>
+              <td>100.0%</td>
+            </tr>
+            <tr>
+              <td>中国大陆手机号</td>
+              <td>regex</td>
+              <td>20</td>
+              <td>10</td>
+              <td>100.0%</td>
+            </tr>
+            <tr>
+              <td>中国银行卡号</td>
+              <td>regex</td>
+              <td>20</td>
+              <td>10</td>
+              <td>100.0%</td>
+            </tr>
+            <tr>
+              <td>信用卡号</td>
+              <td>regex</td>
+              <td>20</td>
+              <td>10</td>
+              <td>100.0%</td>
+            </tr>
+            <tr>
+              <td>中国大陆身份证</td>
+              <td>regex</td>
+              <td>10</td>
+              <td>10</td>
+              <td>100.0%</td>
+            </tr>
+            <tr>
+              <td>中文地址关键词</td>
+              <td>keyword</td>
+              <td>10</td>
+              <td>10</td>
+              <td>100.0%</td>
+            </tr>
+            <tr>
+              <td>邮箱地址</td>
+              <td>regex</td>
+              <td>10</td>
+              <td>10</td>
+              <td>100.0%</td>
+            </tr>
+            <tr>
+              <td>韩文姓名</td>
+              <td>regex</td>
+              <td>10</td>
+              <td>10</td>
+              <td>100.0%</td>
+            </tr>
+            <tr>
+              <td>邮箱部分遮盖</td>
+              <td>mask</td>
+              <td>0</td>
+              <td>10</td>
+              <td>100.0%</td>
+            </tr>
+</table>
+
+<h2>脱敏准确率详情</h2>
+<table>
+  <tr><th>字段</th><th>应用规则</th><th>总数据</th><th>已脱敏</th><th>准确率</th><th>示例</th></tr>
+  
+            <tr>
+              <td>姓名</td>
+              <td>姓名遮盖</td>
+              <td>10</td>
+              <td>10</td>
+              <td>100.0%</td>
+              <td>张三 → 张*</td>
+            </tr>
+            <tr>
+              <td>手机号</td>
+              <td>手机号部分遮盖</td>
+              <td>10</td>
+              <td>10</td>
+              <td>100.0%</td>
+              <td>13800138000 → 138****8000</td>
+            </tr>
+            <tr>
+              <td>身份证号</td>
+              <td>身份证部分遮盖</td>
+              <td>10</td>
+              <td>10</td>
+              <td>100.0%</td>
+              <td>110101199001011234 → 110***********1234</td>
+            </tr>
+            <tr>
+              <td>银行卡号</td>
+              <td>银行卡号遮盖</td>
+              <td>10</td>
+              <td>10</td>
+              <td>100.0%</td>
+              <td>6222021234567890123 → 6222***********0123</td>
+            </tr>
+            <tr>
+              <td>地址</td>
+              <td>地址部分遮盖</td>
+              <td>10</td>
+              <td>10</td>
+              <td>100.0%</td>
+              <td>北京市海淀区中关村大街1号 → 北京市海淀区*******</td>
+            </tr>
+            <tr>
+              <td>邮箱</td>
+              <td>邮箱部分遮盖</td>
+              <td>10</td>
+              <td>10</td>
+              <td>100.0%</td>
+              <td>zhangsan@example.com → zh******@example.com</td>
+            </tr>
+</table>
+
+<h2>优化建议</h2>
+<div class="recommendations">
+  <ul><li>以下字段脱敏效果优秀（≥95%）：姓名, 手机号, 身份证号, 银行卡号, 地址, 邮箱</li></ul>
+</div>
+
+<div class="footer">
+  敏感信息识别与脱敏平台 | 报告自动生成于 2026-05-16T14:54:13.787266
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,652 @@
+// ============================================
+// 色系2 - 暮色紫雾玻璃主题 (Wisteria Twilight Glass Theme)
+// 基于 design03-色系2-玻璃透明.md 设计规范
+// 视觉叙事：深夜 → 紫雾 → 萤火
+// ============================================
+
+// ========== 1. 色彩系统 (严格遵循设计规范) ==========
+
+// 1.1 背景层 (Backgrounds)
+$bg-base: #210124;                    // 页面最底层（极深紫）
+$bg-base-alt: #210635;                // 页面基底备选
+$bg-surface-dark: #420D4B;            // 深色卡片、侧边栏
+$bg-surface-soft: #6667AB;            // 次级区域、图表背景
+$bg-glass-base: rgba(33, 6, 53, 0.7); // 毛玻璃基底
+
+// 1.2 前景层 (Foreground / Content)
+$text-primary: #F4FDAF;               // 主标题、主按钮文字（Lime Cream）
+$text-secondary: #EFDD8D;             // 正文、说明文字（Light Gold）
+$text-tertiary: #DED9E2;              // 辅助文字、占位符（Lavender）
+$text-accent-warm: #F5D5E0;           // 强调文字、标签背景
+$text-accent-cool: #80A1D4;           // 链接、信息提示（Wisteria Blue）
+
+// 1.3 功能色 (Functional Colors)
+$color-success: #65743A;              // 成功状态（Fern）
+$color-info: #80A1D4;                 // 信息提示（Wisteria Blue）
+$color-warning: #EFDD8D;              // 警告（Light Gold）
+$color-danger: #7B337E;               // 错误、删除、高危操作
+$color-border: rgba(222, 217, 226, 0.2); // 边框（Lavender 透明）
+
+// 1.4 渐变系统 (Gradients)
+$gradient-primary: linear-gradient(135deg, #F4FDAF 0%, #EFDD8D 100%);
+$gradient-soft: linear-gradient(135deg, rgba(192, 137, 221, 0.2) 0%, rgba(128, 161, 212, 0.2) 100%);
+$gradient-dark: linear-gradient(180deg, #210124 0%, #420D4B 100%);
+$gradient-card: linear-gradient(135deg, rgba(102, 103, 171, 0.6) 0%, rgba(66, 13, 75, 0.4) 100%);
+
+// 1.5 装饰色
+$periwinkle: #C089DD;                 // 次级强调 / 渐变
+$midnight-violet: #210124;            // 保留原色
+
+// ========== 2. 玻璃效果变量 ==========
+$glass-blur-sm: 8px;
+$glass-blur-md: 16px;
+$glass-blur-lg: 20px;
+$glass-blur-xl: 24px;
+
+$glass-border-light: rgba(222, 217, 226, 0.15);
+$glass-border-medium: rgba(222, 217, 226, 0.2);
+$glass-border-strong: rgba(244, 253, 175, 0.2);
+
+$glass-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+$glass-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+$glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+$glass-shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.5);
+
+// ========== 3. 圆角系统 ==========
+$radius-sm: 8px;
+$radius-md: 10px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+$radius-2xl: 20px;
+$radius-full: 9999px;
+
+// ========== 4. 动效系统 ==========
+$ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+$ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+$spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+$duration-fast: 150ms;
+$duration-base: 220ms;
+$duration-slow: 350ms;
+
+// ========== 5. 字体规范 ==========
+$font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+
+// ============================================
+// 全局基础样式
+// ============================================
+
+body {
+  font-family: $font-family;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: 
+    radial-gradient(circle at 15% 15%, rgba(102, 103, 171, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(192, 137, 221, 0.1) 0%, transparent 40%),
+    linear-gradient(180deg, $bg-base 0%, $bg-base-alt 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  color: $text-secondary;
+}
+
+// ============================================
+// 玻璃卡片组件
+// ============================================
+
+.glass-card {
+  background: $gradient-card;
+  backdrop-filter: blur($glass-blur-lg);
+  -webkit-backdrop-filter: blur($glass-blur-lg);
+  border: 1px solid $glass-border-medium;
+  border-radius: $radius-xl;
+  box-shadow: $glass-shadow-lg;
+  transition: all $duration-base $ease-out;
+  overflow: hidden;
+  position: relative;
+
+  // 顶部高光
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(244, 253, 175, 0.3), transparent);
+    pointer-events: none;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(102, 103, 171, 0.7) 0%, rgba(66, 13, 75, 0.5) 100%);
+    box-shadow: $glass-shadow-xl;
+    transform: translateY(-2px);
+  }
+}
+
+.glass-card--soft {
+  background: rgba(102, 103, 171, 0.4);
+  backdrop-filter: blur($glass-blur-md);
+  border: 1px solid $glass-border-light;
+  
+  &:hover {
+    background: rgba(102, 103, 171, 0.5);
+  }
+}
+
+.glass-card--dark {
+  background: rgba(66, 13, 75, 0.8);
+  backdrop-filter: blur($glass-blur-lg);
+  border: 1px solid rgba(244, 253, 175, 0.1);
+  
+  &:hover {
+    background: rgba(66, 13, 75, 0.9);
+  }
+}
+
+// ============================================
+// 玻璃按钮组件
+// ============================================
+
+.glass-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: $radius-full;
+  border: 1px solid transparent;
+  backdrop-filter: blur($glass-blur-sm);
+  cursor: pointer;
+  transition: all $duration-base $ease-out;
+  box-shadow: $glass-shadow-sm;
+  text-decoration: none;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $glass-shadow-md;
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+// Primary 按钮 - 萤火渐变
+.glass-button--primary {
+  background: $gradient-primary;
+  color: $bg-base;
+  border-color: rgba(244, 253, 175, 0.3);
+  font-weight: 600;
+
+  &:hover {
+    background: linear-gradient(135deg, #fffdd0 0%, #f5e59a 100%);
+    box-shadow: 0 4px 16px rgba(244, 253, 175, 0.3);
+  }
+}
+
+// Secondary 按钮 - 透明边框
+.glass-button--secondary {
+  background: transparent;
+  color: $text-tertiary;
+  border-color: $text-tertiary;
+
+  &:hover {
+    background: rgba(222, 217, 226, 0.1);
+    color: $text-primary;
+    border-color: $text-primary;
+  }
+}
+
+// Ghost 按钮 - 无背景
+.glass-button--ghost {
+  background: transparent;
+  color: $text-accent-cool;
+  border: none;
+  box-shadow: none;
+
+  &:hover {
+    background: rgba(128, 161, 212, 0.1);
+    color: lighten($text-accent-cool, 10%);
+  }
+}
+
+// Danger 按钮
+.glass-button--danger {
+  background: rgba(123, 51, 126, 0.3);
+  color: $text-accent-warm;
+  border-color: rgba(123, 51, 126, 0.5);
+
+  &:hover {
+    background: rgba(123, 51, 126, 0.5);
+    box-shadow: 0 4px 16px rgba(123, 51, 126, 0.3);
+  }
+}
+
+// ============================================
+// 玻璃输入框组件
+// ============================================
+
+.glass-input {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  background: rgba(33, 6, 53, 0.6);
+  backdrop-filter: blur($glass-blur-sm);
+  border: 1px solid $glass-border-light;
+  border-radius: $radius-lg;
+  color: $text-secondary;
+  font-size: 0.875rem;
+  transition: all $duration-base $ease-out;
+  outline: none;
+
+  &::placeholder {
+    color: rgba(222, 217, 226, 0.4);
+  }
+
+  &:hover {
+    background: rgba(33, 6, 53, 0.7);
+    border-color: $glass-border-medium;
+  }
+
+  &:focus {
+    background: rgba(33, 6, 53, 0.8);
+    border-color: $glass-border-strong;
+    box-shadow: 0 0 0 2px rgba(244, 253, 175, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ============================================
+// 玻璃标签/Badge 组件
+// ============================================
+
+.glass-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: $radius-full;
+  backdrop-filter: blur($glass-blur-sm);
+  border: 1px solid transparent;
+}
+
+.glass-badge--success {
+  background: rgba(101, 116, 58, 0.3);
+  color: lighten($color-success, 15%);
+  border-color: rgba(101, 116, 58, 0.4);
+}
+
+.glass-badge--info {
+  background: rgba(128, 161, 212, 0.3);
+  color: lighten($color-info, 10%);
+  border-color: rgba(128, 161, 212, 0.4);
+}
+
+.glass-badge--warning {
+  background: rgba(239, 221, 141, 0.3);
+  color: lighten($color-warning, 5%);
+  border-color: rgba(239, 221, 141, 0.4);
+}
+
+.glass-badge--danger {
+  background: rgba(123, 51, 126, 0.3);
+  color: $text-accent-warm;
+  border-color: rgba(123, 51, 126, 0.4);
+}
+
+// ============================================
+// 玻璃导航栏组件
+// ============================================
+
+.glass-navbar {
+  background: $gradient-dark;
+  backdrop-filter: blur($glass-blur-lg);
+  -webkit-backdrop-filter: blur($glass-blur-lg);
+  border-bottom: 1px solid $glass-border-light;
+  box-shadow: $glass-shadow-md;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(244, 253, 175, 0.3), transparent);
+  }
+}
+
+// ============================================
+// 玻璃侧边栏组件
+// ============================================
+
+.glass-sidebar {
+  background: linear-gradient(180deg, rgba(33, 1, 36, 0.95) 0%, rgba(66, 13, 75, 0.92) 100%);
+  backdrop-filter: blur($glass-blur-lg);
+  -webkit-backdrop-filter: blur($glass-blur-lg);
+  border-right: 1px solid $glass-border-light;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(244, 253, 175, 0.3), transparent);
+  }
+}
+
+// ============================================
+// 玻璃菜单项组件
+// ============================================
+
+.glass-menu-item {
+  padding: 0.75rem 1rem;
+  margin: 0.25rem 0.5rem;
+  border-radius: $radius-md;
+  color: rgba(239, 221, 141, 0.85);
+  transition: all $duration-base $ease-out;
+  cursor: pointer;
+  position: relative;
+
+  &:hover {
+    background: rgba(244, 253, 175, 0.08);
+    color: $text-primary;
+    transform: translateX(2px);
+  }
+
+  &.is-active {
+    background: linear-gradient(135deg, rgba(244, 253, 175, 0.2) 0%, rgba(239, 221, 141, 0.12) 100%);
+    backdrop-filter: blur($glass-blur-sm);
+    color: $text-primary;
+    border: 1px solid rgba(244, 253, 175, 0.15);
+    box-shadow: inset 0 1px 0 rgba(244, 253, 175, 0.1), $glass-shadow-sm;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 20px;
+      background: $gradient-primary;
+      border-radius: 0 3px 3px 0;
+    }
+  }
+}
+
+// ============================================
+// 玻璃表格组件
+// ============================================
+
+.glass-table {
+  background: rgba(102, 103, 171, 0.3);
+  backdrop-filter: blur($glass-blur-md);
+  border: 1px solid $glass-border-light;
+  border-radius: $radius-xl;
+  overflow: hidden;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    background: rgba(66, 13, 75, 0.5);
+    
+    th {
+      padding: 1rem;
+      text-align: left;
+      color: $text-primary;
+      font-weight: 600;
+      font-size: 0.875rem;
+      border-bottom: 1px solid $glass-border-medium;
+    }
+  }
+
+  tbody {
+    tr {
+      transition: all $duration-fast $ease-out;
+      
+      &:hover {
+        background: rgba(244, 253, 175, 0.05);
+      }
+
+      td {
+        padding: 1rem;
+        color: $text-secondary;
+        border-bottom: 1px solid rgba(222, 217, 226, 0.1);
+      }
+
+      &:last-child td {
+        border-bottom: none;
+      }
+    }
+  }
+}
+
+// ============================================
+// 玻璃对话框/模态框组件
+// ============================================
+
+.glass-modal {
+  background: rgba(33, 6, 53, 0.95);
+  backdrop-filter: blur($glass-blur-xl);
+  -webkit-backdrop-filter: blur($glass-blur-xl);
+  border: 1px solid $glass-border-medium;
+  border-radius: $radius-xl;
+  box-shadow: $glass-shadow-xl;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(244, 253, 175, 0.4), transparent);
+  }
+
+  .modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid $glass-border-light;
+    color: $text-primary;
+    font-weight: 600;
+    font-size: 1.125rem;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+    color: $text-secondary;
+  }
+
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid $glass-border-light;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+}
+
+// ============================================
+// 玻璃工具提示组件
+// ============================================
+
+.glass-tooltip {
+  background: $bg-base;
+  backdrop-filter: blur($glass-blur-md);
+  -webkit-backdrop-filter: blur($glass-blur-md);
+  border: 1px solid $glass-border-strong;
+  border-radius: $radius-md;
+  padding: 0.5rem 0.875rem;
+  box-shadow: $glass-shadow-lg;
+  color: $text-secondary;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+// ============================================
+// 玻璃进度条组件
+// ============================================
+
+.glass-progress {
+  height: 8px;
+  background: rgba(33, 6, 53, 0.6);
+  backdrop-filter: blur($glass-blur-sm);
+  border-radius: $radius-full;
+  overflow: hidden;
+  border: 1px solid $glass-border-light;
+
+  .progress-bar {
+    height: 100%;
+    background: $gradient-primary;
+    border-radius: $radius-full;
+    transition: width $duration-slow $ease-out;
+    box-shadow: 0 0 8px rgba(244, 253, 175, 0.4);
+  }
+}
+
+// ============================================
+// 玻璃分割线组件
+// ============================================
+
+.glass-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, $glass-border-medium, transparent);
+  margin: 1.5rem 0;
+}
+
+// ============================================
+// 玻璃搜索框组件
+// ============================================
+
+.glass-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(33, 6, 53, 0.6);
+  backdrop-filter: blur($glass-blur-sm);
+  border: 1px solid $glass-border-light;
+  border-radius: $radius-full;
+  box-shadow: $glass-shadow-sm;
+  transition: all $duration-base $ease-out;
+  width: 200px;
+
+  &:hover, &:focus-within {
+    background: rgba(33, 6, 53, 0.7);
+    border-color: $glass-border-medium;
+    box-shadow: 0 4px 12px rgba(244, 253, 175, 0.1);
+    width: 260px;
+  }
+
+  .search-icon {
+    color: rgba(239, 221, 141, 0.5);
+    font-size: 14px;
+  }
+
+  .search-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 0.8125rem;
+    color: $text-secondary;
+    width: 100%;
+
+    &::placeholder {
+      color: rgba(239, 221, 141, 0.4);
+    }
+  }
+}
+
+// ============================================
+// 玻璃用户头像组件
+// ============================================
+
+.glass-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(244, 253, 175, 0.3) 0%, rgba(239, 221, 141, 0.2) 100%);
+  backdrop-filter: blur($glass-blur-sm);
+  border: 1px solid rgba(244, 253, 175, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-primary;
+  box-shadow: $glass-shadow-sm;
+  transition: all $duration-base $ease-out;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: $glass-shadow-md;
+  }
+}
+
+// ============================================
+// 动画效果
+// ============================================
+
+@keyframes shimmer {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(10%, 10%); }
+}
+
+@keyframes glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.glass-shimmer {
+  animation: shimmer 4s ease-in-out infinite;
+}
+
+.glass-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.glass-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+// ============================================
+// 响应式适配
+// ============================================
+
+@media (max-width: 768px) {
+  .glass-search {
+    width: 150px;
+    
+    &:hover, &:focus-within {
+      width: 180px;
+    }
+  }
+}

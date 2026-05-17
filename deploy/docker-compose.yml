@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # ============ MySQL 数据库 ============
+  mysql:
+    image: mysql:8.0
+    container_name: desensitization-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: msps
+      MYSQL_DATABASE: desensitization2
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init_db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pmsps"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============ 后端 API 服务 ============
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/Dockerfile.backend
+    container_name: desensitization-backend
+    restart: always
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:msps@mysql:3306/desensitization2
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=msps
+      - MYSQL_DATABASE=desensitization2
+      - UPLOAD_DIR=/app/uploads
+      - DEBUG=false
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============ 前端 Nginx 服务 ============
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../deploy/Dockerfile.frontend
+    container_name: desensitization-frontend
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql-data:
+  uploads:

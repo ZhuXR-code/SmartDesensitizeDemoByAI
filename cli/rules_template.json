@@ -1,0 +1,19 @@
+{
+  "description": "字段-脱敏规则映射配置",
+  "rules": {
+    "姓名": 3,
+    "手机号": 1,
+    "身份证号": 2,
+    "银行卡号": 4,
+    "地址": 5,
+    "邮箱": 8
+  },
+  "rule_definitions": {
+    "1": {"name": "手机号部分遮盖", "method": "partial_mask", "keep_head": 3, "keep_tail": 4},
+    "2": {"name": "身份证部分遮盖", "method": "partial_mask", "keep_head": 3, "keep_tail": 4},
+    "3": {"name": "姓名遮盖", "method": "name_mask", "keep_head": 1},
+    "4": {"name": "银行卡号遮盖", "method": "partial_mask", "keep_head": 4, "keep_tail": 4},
+    "5": {"name": "地址部分遮盖", "method": "address_mask", "keep_head": 6},
+    "8": {"name": "邮箱部分遮盖", "method": "email_mask"}
+  }
+}

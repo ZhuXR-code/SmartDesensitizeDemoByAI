@@ -1,0 +1,165 @@
+{
+  "report_id": "e03d54917735",
+  "report_name": "脱敏规则校验报告",
+  "dataset_name": "0.3-敏感信息脱敏测试数据-正式.xlsx",
+  "created_at": "2026-05-16T18:51:00.826046",
+  "summary": {
+    "total_rows": 1343,
+    "total_columns": 6,
+    "configured_rules": 6,
+    "matched_sensitive_count": 18288,
+    "desensitized_count": 6715,
+    "overall_coverage_rate": 150.0,
+    "overall_accuracy_rate": 100.0,
+    "detection_time_ms": 1468.58,
+    "desensitization_time_ms": 732.41,
+    "total_time_ms": 2200.98
+  },
+  "rule_coverage": [
+    {
+      "rule_id": 3,
+      "rule_name": "中文姓名",
+      "rule_type": "regex",
+      "matched_count": 5706,
+      "matched_rows": 1343,
+      "coverage_rate": 100.0
+    },
+    {
+      "rule_id": 1,
+      "rule_name": "中国大陆手机号",
+      "rule_type": "regex",
+      "matched_count": 4029,
+      "matched_rows": 1343,
+      "coverage_rate": 100.0
+    },
+    {
+      "rule_id": 4,
+      "rule_name": "中国银行卡号",
+      "rule_type": "regex",
+      "matched_count": 2686,
+      "matched_rows": 1343,
+      "coverage_rate": 100.0
+    },
+    {
+      "rule_id": 14,
+      "rule_name": "信用卡号",
+      "rule_type": "regex",
+      "matched_count": 2686,
+      "matched_rows": 1343,
+      "coverage_rate": 100.0
+    },
+    {
+      "rule_id": 2,
+      "rule_name": "中国大陆身份证",
+      "rule_type": "regex",
+      "matched_count": 1343,
+      "matched_rows": 1343,
+      "coverage_rate": 100.0
+    },
+    {
+      "rule_id": 5,
+      "rule_name": "中文地址关键词",
+      "rule_type": "keyword",
+      "matched_count": 1038,
+      "matched_rows": 1343,
+      "coverage_rate": 100.0
+    },
+    {
+      "rule_id": 6,
+      "rule_name": "英文姓名",
+      "rule_type": "regex",
+      "matched_count": 415,
+      "matched_rows": 207,
+      "coverage_rate": 15.41
+    },
+    {
+      "rule_id": 10,
+      "rule_name": "韩文姓名",
+      "rule_type": "regex",
+      "matched_count": 266,
+      "matched_rows": 54,
+      "coverage_rate": 4.02
+    },
+    {
+      "rule_id": 9,
+      "rule_name": "日文姓名",
+      "rule_type": "regex",
+      "matched_count": 119,
+      "matched_rows": 27,
+      "coverage_rate": 2.01
+    }
+  ],
+  "accuracy_details": [
+    {
+      "column_name": "姓名",
+      "rule_id": 3,
+      "rule_name": "手机号仿真",
+      "total_values": 1343,
+      "desensitized_count": 1343,
+      "accuracy_rate": 100.0,
+      "sample_original": "薛慧",
+      "sample_desensitized": "13827919328"
+    },
+    {
+      "column_name": "手机号",
+      "rule_id": 1,
+      "rule_name": "完全遮盖",
+      "total_values": 1343,
+      "desensitized_count": 1343,
+      "accuracy_rate": 100.0,
+      "sample_original": "13224356432",
+      "sample_desensitized": "*"
+    },
+    {
+      "column_name": "身份证号",
+      "rule_id": 2,
+      "rule_name": "姓名仿真",
+      "total_values": 1343,
+      "desensitized_count": 1343,
+      "accuracy_rate": 100.0,
+      "sample_original": "632823199001024863",
+      "sample_desensitized": "尤静"
+    },
+    {
+      "column_name": "银行卡号",
+      "rule_id": 4,
+      "rule_name": "身份证号仿真",
+      "total_values": 1343,
+      "desensitized_count": 1343,
+      "accuracy_rate": 100.0,
+      "sample_original": "622908617822214081",
+      "sample_desensitized": "330101200008216480"
+    },
+    {
+      "column_name": "地址",
+      "rule_id": 5,
+      "rule_name": "银行卡号仿真",
+      "total_values": 1343,
+      "desensitized_count": 1343,
+      "accuracy_rate": 100.0,
+      "sample_original": "广西壮族自治区沈阳县友好虞路x座 917806",
+      "sample_desensitized": "6228494492261970"
+    }
+  ],
+  "performance": {
+    "total_rows": 1343,
+    "total_columns": 6,
+    "detection_time_ms": 1468.58,
+    "desensitization_time_ms": 732.41,
+    "total_time_ms": 2200.98,
+    "rows_per_second": 610.18,
+    "memory_peak_mb": 12.0
+  },
+  "field_rules": {
+    "姓名": 3,
+    "手机号": 1,
+    "身份证号": 2,
+    "银行卡号": 4,
+    "地址": 5,
+    "邮箱": 8
+  },
+  "recommendations": [
+    "以下规则覆盖率较低（<50%），建议检查数据质量或调整规则配置：英文姓名, 韩文姓名, 日文姓名",
+    "以下字段脱敏效果优秀（≥95%）：姓名, 手机号, 身份证号, 银行卡号, 地址"
+  ]
+}

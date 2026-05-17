@@ -1,0 +1,37 @@
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+backend/venv/
+
+# Upload & Data
+uploads/*
+!uploads/.gitkeep
+backend/data/
+backend/*.db
+
+# Logs
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
