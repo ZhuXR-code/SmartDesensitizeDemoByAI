@@ -318,5 +318,5 @@ const workflowSteps = [
 ---
 
 **相关文档**：
-- [用户使用手册](./docs/USER_MANUAL.md)
-- [平台运营成效报告](./frontend/src/views/report/PlatformReport.vue)
+- [用户使用手册](../docs/USER_MANUAL.md)
+- [平台运营成效报告](../frontend/src/views/report/PlatformReport.vue)

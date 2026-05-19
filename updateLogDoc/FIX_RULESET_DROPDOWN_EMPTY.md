@@ -233,6 +233,6 @@ console.error('加载规则集失败:', e)
 ---
 
 **相关文件**：
-- [检测模块API](./frontend/src/api/detection.js)
-- [创建任务页面](./frontend/src/views/detection/CreateTask.vue)
-- [规则集管理页面](./frontend/src/views/detection/RuleSetManage.vue)
+- [检测模块API](../frontend/src/api/detection.js)
+- [创建任务页面](../frontend/src/views/detection/CreateTask.vue)
+- [规则集管理页面](../frontend/src/views/detection/RuleSetManage.vue)

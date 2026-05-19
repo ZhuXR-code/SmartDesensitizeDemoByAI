@@ -355,6 +355,6 @@ else:
 ---
 
 **相关文件**：
-- [关联造数规则SQL](./backend/add_deterministic_rules.sql)
-- [脱敏引擎](./backend/app/services/desensitization_engine.py)
-- [部署指南](./backend/DETERMINISTIC_RULES_DEPLOYMENT.md)
+- [关联造数规则SQL](../backend/add_deterministic_rules.sql)
+- [脱敏引擎](../backend/app/services/desensitization_engine.py)
+- [部署指南](../backend/DETERMINISTIC_RULES_DEPLOYMENT.md)

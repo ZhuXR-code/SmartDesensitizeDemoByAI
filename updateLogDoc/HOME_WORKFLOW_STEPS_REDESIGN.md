@@ -441,5 +441,5 @@ const workflowSteps = [
 ---
 
 **相关文件**：
-- [Dashboard.vue](./frontend/src/views/Dashboard.vue)
-- [首页工作流程时间轴功能](./HOME_WORKFLOW_TIMELINE_FEATURE.md)
+- [Dashboard.vue](../frontend/src/views/Dashboard.vue)
+- [首页工作流程时间轴功能](HOME_WORKFLOW_TIMELINE_FEATURE.md)

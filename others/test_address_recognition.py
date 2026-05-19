@@ -3,7 +3,7 @@
 基于真实测试数据的多语言地址识别功能测试
 """
 import sys
-sys.path.insert(0, 'backend')
+sys.path.insert(0, '../backend')
 
 from app.services.address_parser import AddressIdentifier
 
