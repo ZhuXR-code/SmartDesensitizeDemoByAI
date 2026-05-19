@@ -124,7 +124,6 @@
             :data="filteredTables"
             style="width: 100%"
             @selection-change="handleSelectionChange"
-            height="400"
           >
             <el-table-column type="selection" width="55" />
             <el-table-column prop="name" label="表名" min-width="200" />
@@ -790,14 +789,20 @@ onMounted(async () => {
 
 .connection-card {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .table-card {
   min-height: 500px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .empty-card {
   min-height: 500px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -809,6 +814,21 @@ onMounted(async () => {
 
 .preview-loading {
   padding: 20px;
+}
+
+/* 确保el-table填充剩余空间 */
+.table-card :deep(.el-table) {
+  flex: 1;
+  min-height: 0; /* 防止flex子项溢出 */
+}
+
+/* 确保卡片内容区域也能正确填充 */
+.connection-card :deep(.el-card__body),
+.table-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* 表格行悬浮效果 */

@@ -98,7 +98,7 @@
 
     <!-- 核心指标 + 最近任务同一行 -->
     <el-row :gutter="16" class="section">
-      <el-col :xs="24" :md="10">
+      <el-col :xs="24" :sm="24" :md="12" :lg="10" :xl="8">
         <el-card shadow="never" class="section-card stats-card">
           <template #header>
             <div class="section-header">
@@ -134,13 +134,40 @@
                 <div class="stat-label">脱敏任务</div>
               </div>
             </div>
+            <div class="stat-box" @click="$router.push('/ai/detection/tasks')">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <el-icon size="24"><Cpu /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ stats.total_ai_detection_tasks || 0 }}</div>
+                <div class="stat-label">AI识别</div>
+              </div>
+            </div>
+            <div class="stat-box" @click="$router.push('/ai/desensitization/tasks')">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <el-icon size="24"><Cpu /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">{{ stats.total_ai_desensitization_tasks || 0 }}</div>
+                <div class="stat-label">AI脱敏</div>
+              </div>
+            </div>
             <div class="stat-box">
               <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
                 <el-icon size="24"><Warning /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value" style="color: #f5576c;">{{ stats.total_sensitive_found || 0 }}</div>
-                <div class="stat-label">敏感发现</div>
+                <div class="stat-label">传统敏感</div>
+              </div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <el-icon size="24"><Cpu /></el-icon>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value" style="color: #f5576c;">{{ stats.total_ai_sensitive_found || 0 }}</div>
+                <div class="stat-label">AI敏感</div>
               </div>
             </div>
           </div>
@@ -170,7 +197,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :xs="24" :md="14">
+      <el-col :xs="24" :sm="24" :md="12" :lg="14" :xl="16">
         <el-card shadow="never" class="section-card tasks-card">
           <template #header>
             <div class="section-header">
@@ -248,6 +275,75 @@
                 </div>
               </div>
             </el-tab-pane>
+            <el-tab-pane label="AI识别" name="ai_detection">
+              <div class="task-list">
+                <div v-if="recentAiDetectionTasks.length === 0" class="task-empty">
+                  <el-empty description="暂无AI识别任务" :image-size="60" />
+                </div>
+                <div
+                  v-for="task in recentAiDetectionTasks"
+                  :key="task.id"
+                  class="task-item"
+                  @click="$router.push('/ai/detection/tasks/' + task.id)"
+                >
+                  <div class="task-dot" :class="getStatusType(task.status)"></div>
+                  <div class="task-main">
+                    <div class="task-name" :title="task.name">{{ task.name }}</div>
+                    <div class="task-meta">
+                      <el-tag :type="getStatusType(task.status)" effect="light" size="small">
+                        {{ getStatusText(task.status) }}
+                      </el-tag>
+                      <span class="task-time">{{ formatTime(task.created_at) }}</span>
+                    </div>
+                  </div>
+                  <div class="task-side">
+                    <el-tag v-if="task.found_count > 0" type="warning" effect="plain" size="small">
+                      {{ task.found_count }}
+                    </el-tag>
+                    <span v-else class="task-count-zero">0</span>
+                    <el-progress
+                      :percentage="task.progress || 0"
+                      :stroke-width="4"
+                      :show-text="false"
+                      class="task-progress"
+                    />
+                  </div>
+                </div>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="AI脱敏" name="ai_desensitization">
+              <div class="task-list">
+                <div v-if="recentAiDesensitizationTasks.length === 0" class="task-empty">
+                  <el-empty description="暂无AI脱敏任务" :image-size="60" />
+                </div>
+                <div
+                  v-for="task in recentAiDesensitizationTasks"
+                  :key="task.id"
+                  class="task-item"
+                  @click="$router.push('/ai/desensitization/tasks/' + task.id)"
+                >
+                  <div class="task-dot" :class="getStatusType(task.status)"></div>
+                  <div class="task-main">
+                    <div class="task-name" :title="task.name">{{ task.name }}</div>
+                    <div class="task-meta">
+                      <el-tag :type="getStatusType(task.status)" effect="light" size="small">
+                        {{ getStatusText(task.status) }}
+                      </el-tag>
+                      <span class="task-time">{{ formatTime(task.created_at) }}</span>
+                    </div>
+                  </div>
+                  <div class="task-side">
+                    <span class="task-rows">{{ task.processed_rows || 0 }} 行</span>
+                    <el-progress
+                      :percentage="task.progress || 0"
+                      :stroke-width="4"
+                      :show-text="false"
+                      class="task-progress"
+                    />
+                  </div>
+                </div>
+              </div>
+            </el-tab-pane>
           </el-tabs>
         </el-card>
       </el-col>
@@ -271,6 +367,8 @@ const router = useRouter()
 const stats = ref({})
 const recentDetectionTasks = ref([])
 const recentDesensitizationTasks = ref([])
+const recentAiDetectionTasks = ref([])
+const recentAiDesensitizationTasks = ref([])
 const sensitiveDistribution = ref([])
 const chartRef = ref(null)
 const chartInstance = ref(null)
@@ -521,6 +619,8 @@ const loadStats = async () => {
     stats.value = res.data.overview || {}
     recentDetectionTasks.value = res.data.recent_tasks?.detection || []
     recentDesensitizationTasks.value = res.data.recent_tasks?.desensitization || []
+    recentAiDetectionTasks.value = res.data.recent_tasks?.ai_detection || []
+    recentAiDesensitizationTasks.value = res.data.recent_tasks?.ai_desensitization || []
     sensitiveDistribution.value = res.data.sensitive_type_distribution || []
     nextTick(() => initChart())
   } catch (e) {
@@ -652,20 +752,40 @@ onMounted(() => {
 .workflow-steps {
   display: flex;
   align-items: stretch;
-  gap: 0;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .workflow-step {
   flex: 1;
+  min-width: calc(20% - 7px);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 12px;
+  gap: 8px;
+  padding: 12px 10px;
   border-radius: 8px;
   background: #f5f7fa;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+}
+
+@media (max-width: 992px) {
+  .workflow-step {
+    min-width: calc(33.333% - 6px);
+  }
+}
+
+@media (max-width: 768px) {
+  .workflow-step {
+    min-width: calc(50% - 4px);
+  }
+}
+
+@media (max-width: 576px) {
+  .workflow-step {
+    min-width: 100%;
+  }
 }
 
 .workflow-step:hover {

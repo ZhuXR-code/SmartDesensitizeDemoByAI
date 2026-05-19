@@ -11,9 +11,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./data/desensitization.db"
     
     MYSQL_HOST: str = "localhost"
-    MYSQL_PORT: int = 3306
+    MYSQL_PORT: int = 3308
     MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = "123456"
+    MYSQL_PASSWORD: str = "msps"
     MYSQL_DATABASE: str = "desensitization"
     
     SECRET_KEY: str = "your-secret-key-change-this-in-production"

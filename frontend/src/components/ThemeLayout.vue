@@ -19,6 +19,8 @@ const loadLayout = async () => {
     let module
     if (theme === 'classic') {
       module = await import('@/themes/classic/components/Layout.vue')
+    } else if (theme === 'vue-classic') {
+      module = await import('@/themes/vue-classic/components/Layout.vue')
     } else if (theme === 'dark-purple') {
       module = await import('@/themes/dark-purple/components/Layout.vue')
     } else if (theme === 'black-gold') {

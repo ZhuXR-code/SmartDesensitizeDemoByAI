@@ -46,6 +46,22 @@
           <span>首页</span>
         </el-menu-item>
 
+        <el-menu-item index="/workflow/express">
+          <el-tooltip
+            :disabled="!isCollapse"
+            content="快速脱敏"
+            placement="right"
+            :show-arrow="false"
+            :offset="12"
+            popper-class="sidebar-tooltip-glass"
+          >
+            <div class="menu-icon-wrap">
+              <el-icon><Lightning /></el-icon>
+            </div>
+          </el-tooltip>
+          <span>快速脱敏</span>
+        </el-menu-item>
+
         <el-sub-menu index="/datasets">
           <template #title>
             <el-icon><Document /></el-icon>
@@ -73,6 +89,15 @@
           </template>
           <el-menu-item index="/desensitization/rules">脱敏规则管理</el-menu-item>
           <el-menu-item index="/desensitization/tasks">脱敏任务</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="/ai">
+          <template #title>
+            <el-icon><Cpu /></el-icon>
+            <span>AI智能</span>
+          </template>
+          <el-menu-item index="/ai/detection">AI识别与脱敏</el-menu-item>
+          <el-menu-item index="/ai/config">AI配置管理</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="/report">
@@ -170,7 +195,7 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
-import { HomeFilled, Document, Lock, ArrowDown, QuestionFilled, Fold, Expand, TrendCharts, UserFilled, Setting, SwitchButton, Sunny, Moon, Star } from '@element-plus/icons-vue'
+import { HomeFilled, Document, Lock, ArrowDown, QuestionFilled, Fold, Expand, TrendCharts, UserFilled, Setting, SwitchButton, Sunny, Moon, Star, Connection, Cpu, Lightning } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const themeStore = useThemeStore()
@@ -193,6 +218,7 @@ const toggleCollapse = () => {
 const getThemeIcon = () => {
   const iconMap = {
     'classic': 'Sunny',
+    'vue-classic': 'Connection',
     'dark-purple': 'Moon',
     'black-gold': 'Star'
   }

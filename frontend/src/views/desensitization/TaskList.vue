@@ -3,10 +3,18 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>脱敏任务列表</span>
-          <el-button type="primary" @click="$router.push('/desensitization/tasks/create')">
-            <el-icon><Plus /></el-icon> 创建任务
-          </el-button>
+          <el-tabs v-model="activeTab">
+            <el-tab-pane label="传统脱敏" name="traditional">
+              <el-button type="primary" @click="$router.push('/desensitization/tasks/create')">
+                <el-icon><Plus /></el-icon> 创建任务
+              </el-button>
+            </el-tab-pane>
+            <el-tab-pane label="AI脱敏" name="ai">
+              <el-button type="primary" @click="$router.push('/ai/desensitization/tasks/create')">
+                <el-icon><Cpu /></el-icon> 创建AI脱敏
+              </el-button>
+            </el-tab-pane>
+          </el-tabs>
         </div>
       </template>
       
@@ -25,14 +33,17 @@
         </el-table-column>
         <el-table-column prop="output_mode" label="输出模式">
           <template #default="{ row }">
-            <el-tag :type="row.output_mode === 'copy' ? 'success' : 'danger'">
+            <el-tag v-if="row.mode" :type="row.mode === 'mask' ? 'success' : 'warning'">
+              {{ row.mode === 'mask' ? '定长遮盖' : '关联仿真' }}
+            </el-tag>
+            <el-tag v-else :type="row.output_mode === 'copy' ? 'success' : 'danger'">
               {{ row.output_mode === 'copy' ? '生成副本' : '覆盖原数据' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="processed_rows" label="已处理/总行数">
           <template #default="{ row }">
-            {{ row.processed_rows }} / {{ row.total_rows }}
+            {{ row.processed_rows || 0 }} / {{ row.total_rows || 0 }}
           </template>
         </el-table-column>
         <el-table-column prop="created_at" label="创建时间" />
@@ -47,17 +58,15 @@
                   type="success" 
                   size="small" 
                   @click="downloadFile(row)" 
-                  v-if="row.status === 'completed' && (row.output_path || row.temp_file_path)"
+                  v-if="row.status === 'completed' && (row.output_path || row.temp_file_path || row.output_file_path || row.output_file_pure_path)"
                 >
                   下载副本
                 </el-button>
               </el-tooltip>
               <el-dropdown @command="(cmd) => downloadReportWithFormat(row, cmd)" style="margin-right: 4px;">
-                <el-tooltip content="下载脱敏报告（HTML/Markdown格式）" placement="top">
-                  <el-button type="warning" size="small">
-                    下载报告<el-icon class="el-icon--right"><arrow-down /></el-icon>
-                  </el-button>
-                </el-tooltip>
+                <el-button type="warning" size="small">
+                  下载报告<el-icon class="el-icon--right"><arrow-down /></el-icon>
+                </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="html">HTML格式</el-dropdown-item>
@@ -92,8 +101,9 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElIcon } from 'element-plus'
-import { Plus, ArrowDown, View } from '@element-plus/icons-vue'
+import { Plus, ArrowDown, View, Cpu } from '@element-plus/icons-vue'
 import { getDesensitizationTasks, downloadDesensitizedFile, generateReport, downloadReport } from '@/api/desensitization'
+import { getAiDesensitizationTasks } from '@/api/ai'
 
 const router = useRouter()
 const loading = ref(false)
@@ -101,6 +111,7 @@ const tasks = ref([])
 const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
+const activeTab = ref('traditional')
 
 const getStatusType = (status) => {
   const map = {
@@ -115,7 +126,12 @@ const getStatusType = (status) => {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getDesensitizationTasks({ page: page.value, page_size: pageSize.value })
+    let res
+    if (activeTab.value === 'ai') {
+      res = await getAiDesensitizationTasks({ page: page.value, page_size: pageSize.value })
+    } else {
+      res = await getDesensitizationTasks({ page: page.value, page_size: pageSize.value })
+    }
     tasks.value = res.data.items || []
     total.value = res.data.total || 0
   } catch (e) {
@@ -126,7 +142,11 @@ const loadData = async () => {
 }
 
 const viewDetail = (row) => {
-  router.push(`/desensitization/tasks/${row.id}`)
+  if (activeTab.value === 'ai') {
+    router.push(`/ai/desensitization/tasks/${row.id}`)
+  } else {
+    router.push(`/desensitization/tasks/${row.id}`)
+  }
 }
 
 const downloadFile = async (row) => {
@@ -172,12 +192,18 @@ const downloadReportWithFormat = async (row, format) => {
 const previewReport = async (row) => {
   try {
     const res = await downloadReport(row.id, 'html')
+    // 检查响应是否为 Blob
+    if (!(res instanceof Blob)) {
+      throw new Error('返回数据格式错误')
+    }
     const blob = new Blob([res], { type: 'text/html' })
     const url = URL.createObjectURL(blob)
     window.open(url, '_blank')
+    // 延迟释放 URL，确保页面加载完成
+    setTimeout(() => URL.revokeObjectURL(url), 60000)
   } catch (e) {
-    console.error(e)
-    ElMessage.error('预览报告失败')
+    console.error('预览报告失败:', e)
+    ElMessage.error('预览报告失败: ' + (e.message || '未知错误'))
   }
 }
 

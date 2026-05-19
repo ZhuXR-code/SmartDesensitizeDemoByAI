@@ -3,7 +3,7 @@
     <el-card v-loading="loading">
       <template #header>
         <div class="card-header">
-          <span>脱敏任务详情: {{ task.name }}</span>
+          <span>{{ isAiTask ? 'AI脱敏任务详情' : '脱敏任务详情' }}: {{ task.name }}</span>
           <div class="header-actions">
             <el-button 
               type="primary" 
@@ -22,7 +22,7 @@
             <el-button 
               type="success" 
               @click="downloadFile" 
-              v-if="(task.output_path || task.temp_file_path) && task.status === 'completed'"
+              v-if="task.status === 'completed' && (task.output_path || task.temp_file_path || task.output_file_path || task.output_file_pure_path)"
             >
               下载副本
             </el-button>
@@ -47,6 +47,14 @@
       
       <el-descriptions :column="3" border>
         <el-descriptions-item label="ID">{{ task.id }}</el-descriptions-item>
+        <el-descriptions-item label="模式">
+          <el-tag v-if="task.mode" :type="task.mode === 'mask' ? 'primary' : 'warning'" size="small">
+            {{ task.mode === 'mask' ? '定长遮盖' : '关联仿真' }}
+          </el-tag>
+          <el-tag v-else :type="task.output_mode === 'copy' ? 'success' : 'danger'" size="small">
+            {{ task.output_mode === 'copy' ? '生成副本' : '覆盖原数据' }}
+          </el-tag>
+        </el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(task.status)">{{ task.status }}</el-tag>
         </el-descriptions-item>
@@ -67,13 +75,38 @@
       </el-descriptions>
       
       <div style="margin-top: 20px;">
-        <h4>脱敏结果示例</h4>
+        <h4>脱敏结果详情</h4>
         <el-table :data="results" size="small" style="margin-top: 10px;">
           <el-table-column prop="row_index" label="行号" width="80" />
           <el-table-column prop="column_name" label="列名" />
           <el-table-column prop="original_value" label="原始值" show-overflow-tooltip />
-          <el-table-column prop="desensitized_value" label="脱敏后" show-overflow-tooltip />
-          <el-table-column prop="rule_name" label="应用规则" />
+          <el-table-column prop="desensitized_value" label="脱敏后" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span style="color: #e6a23c; font-weight: 500;">{{ row.desensitized_value }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="ai_original_is_sensitive" label="AI识别" width="90">
+            <template #default="{ row }">
+              <el-tag :type="row.ai_original_is_sensitive ? 'danger' : 'success'" size="small">
+                {{ row.ai_original_is_sensitive ? '敏感' : '非敏感' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="review_status" label="复核状态" width="90">
+            <template #default="{ row }">
+              <el-tag v-if="row.review_status === 'reviewed'" :type="row.review_result ? 'danger' : 'success'" size="small">
+                {{ row.review_result ? '已复核(敏感)' : '已复核(非敏)' }}
+              </el-tag>
+              <el-tag v-else type="info" size="small">未复核</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="method" label="方法" width="90">
+            <template #default="{ row }">
+              <el-tag :type="row.method === 'mask' ? 'primary' : 'warning'" size="small">
+                {{ row.method === 'mask' ? '遮盖' : '仿真' }}
+              </el-tag>
+            </template>
+          </el-table-column>
         </el-table>
         
         <el-pagination
@@ -90,13 +123,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Refresh, ArrowDown } from '@element-plus/icons-vue'
+import { Refresh, ArrowDown, View } from '@element-plus/icons-vue'
 import { getDesensitizationTask, getDesensitizationResults, downloadDesensitizedFile, downloadReport } from '@/api/desensitization'
+import { getAiDesensitizationTaskDetail, generateDesensitizationHtmlReport, generateDesensitizationMarkdownReport } from '@/api/ai'
 
 const route = useRoute()
+const router = useRouter()
 const taskId = route.params.id
 
 const loading = ref(false)
@@ -111,6 +146,10 @@ let refreshTimer = null
 
 const RefreshIcon = Refresh
 
+const isAiTask = computed(() => {
+  return route.path.includes('/ai/desensitization/tasks/')
+})
+
 const getStatusType = (status) => {
   const map = {
     'completed': 'success',
@@ -124,7 +163,12 @@ const getStatusType = (status) => {
 const loadTask = async () => {
   loading.value = true
   try {
-    const res = await getDesensitizationTask(taskId)
+    let res
+    if (isAiTask.value) {
+      res = await getAiDesensitizationTaskDetail(taskId)
+    } else {
+      res = await getDesensitizationTask(taskId)
+    }
     task.value = res.data || {}
     await loadResults()
   } catch (e) {
@@ -164,7 +208,12 @@ const startAutoRefresh = () => {
   // 设置新的定时器，每3秒刷新一次
   refreshTimer = setInterval(async () => {
     try {
-      const res = await getDesensitizationTask(taskId)
+      let res
+      if (isAiTask.value) {
+        res = await getAiDesensitizationTaskDetail(taskId)
+      } else {
+        res = await getDesensitizationTask(taskId)
+      }
       const newTask = res.data || {}
       
       // 检查任务状态或进度是否变化
@@ -206,9 +255,16 @@ const stopAutoRefresh = () => {
 
 const loadResults = async () => {
   try {
-    const res = await getDesensitizationResults(taskId, { page: page.value, page_size: pageSize.value })
-    results.value = res.data.items || []
-    total.value = res.data.total || 0
+    let res
+    if (isAiTask.value) {
+      res = await getAiDesensitizationTaskDetail(taskId)
+      results.value = res.data.results || []
+      total.value = res.data.results?.length || 0
+    } else {
+      res = await getDesensitizationResults(taskId, { page: page.value, page_size: pageSize.value })
+      results.value = res.data.items || []
+      total.value = res.data.total || 0
+    }
   } catch (e) {
     console.error(e)
   }
@@ -216,7 +272,13 @@ const loadResults = async () => {
 
 const downloadFile = async () => {
   try {
-    const res = await downloadDesensitizedFile(taskId)
+    let res
+    if (isAiTask.value) {
+      // AI脱敏任务的下载逻辑需要根据实际API调整
+      res = await downloadDesensitizedFile(taskId)
+    } else {
+      res = await downloadDesensitizedFile(taskId)
+    }
     const blob = new Blob([res])
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
@@ -231,7 +293,16 @@ const downloadFile = async () => {
 
 const downloadReportWithFormat = async (format) => {
   try {
-    const res = await downloadReport(taskId, format)
+    let res
+    if (isAiTask.value) {
+      if (format === 'html') {
+        res = await generateDesensitizationHtmlReport(taskId)
+      } else if (format === 'markdown') {
+        res = await generateDesensitizationMarkdownReport(taskId)
+      }
+    } else {
+      res = await downloadReport(taskId, format)
+    }
     const mimeTypes = {
       'pdf': 'application/pdf',
       'html': 'text/html',
@@ -256,8 +327,13 @@ const downloadReportWithFormat = async (format) => {
 
 const previewReport = async () => {
   try {
-    // 先尝试获取HTML格式用于预览
-    const res = await downloadReport(taskId, 'html')
+    let res
+    if (isAiTask.value) {
+      res = await generateDesensitizationHtmlReport(taskId)
+    } else {
+      // 先尝试获取HTML格式用于预览
+      res = await downloadReport(taskId, 'html')
+    }
     const blob = new Blob([res], { type: 'text/html' })
     const url = URL.createObjectURL(blob)
     window.open(url, '_blank')

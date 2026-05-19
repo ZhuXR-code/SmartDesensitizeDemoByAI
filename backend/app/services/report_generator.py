@@ -1,581 +1,432 @@
-import json
-import time
-import hashlib
-from typing import Dict, List, Any, Optional
-from datetime import datetime
-from dataclasses import dataclass, asdict
+"""
+AI检测报告生成器
+支持生成HTML和Markdown格式的报告
+"""
 import os
+import time
+from datetime import datetime
+from typing import List
+from sqlalchemy.orm import Session
+from app.core.logger import get_logger
 
-from app.services.detection_engine import DetectionEngine
-from app.services.desensitization_engine import DesensitizationEngine
-from app.services.data_service import DataService
-
-
-@dataclass
-class RuleCoverage:
-    rule_id: int
-    rule_name: str
-    rule_type: str
-    matched_count: int
-    matched_rows: int
-    coverage_rate: float
-
-
-@dataclass
-class DesensitizationAccuracy:
-    column_name: str
-    rule_id: int
-    rule_name: str
-    total_values: int
-    desensitized_count: int
-    accuracy_rate: float
-    sample_original: str
-    sample_desensitized: str
-
-
-@dataclass
-class PerformanceMetrics:
-    total_rows: int
-    total_columns: int
-    detection_time_ms: float
-    desensitization_time_ms: float
-    total_time_ms: float
-    rows_per_second: float
-    memory_peak_mb: float
-    # 新增指标
-    sensitive_fields_count: int = 0  # 敏感字段数量
-    non_sensitive_fields_count: int = 0  # 非敏感字段数量
-    total_matches: int = 0  # 总匹配次数
-    average_accuracy: float = 0.0  # 平均准确率
-
-
-@dataclass
-class ValidationReport:
-    report_id: str
-    report_name: str
-    dataset_name: str
-    created_at: str
-    summary: Dict[str, Any]
-    rule_coverage: List[RuleCoverage]
-    accuracy_details: List[DesensitizationAccuracy]
-    performance: PerformanceMetrics
-    field_rules: Dict[str, int]
-    recommendations: List[str]
+logger = get_logger(__name__)
 
 
 class ReportGenerator:
-    def __init__(self):
-        self.detection_engine = DetectionEngine()
-        self.desensitization_engine = DesensitizationEngine()
-
-    def generate_report(
-        self,
-        dataset_path: str,
-        field_rules: Dict[str, int],
-        dataset_name: str = "未命名数据集",
-        report_name: str = "脱敏规则校验报告"
-    ) -> ValidationReport:
-        import pandas as pd
-        import psutil
-        import tracemalloc
-
-        tracemalloc.start()
-        process = psutil.Process()
-        mem_before = process.memory_info().rss / 1024 / 1024
-
-        df = DataService.read_file(dataset_path)
-        total_rows = len(df)
-        total_columns = len(df.columns)
-
-        # Detection phase
-        detection_start = time.perf_counter()
-        detection_matches = self.detection_engine.scan_dataframe(df)
-        detection_time = (time.perf_counter() - detection_start) * 1000
-
-        # Desensitization phase
-        desensitization_start = time.perf_counter()
-        result_df, desensitization_matches = self.desensitization_engine.process_dataframe(
-            df, field_rules
-        )
-        desensitization_time = (time.perf_counter() - desensitization_start) * 1000
-
-        total_time = detection_time + desensitization_time
-        rows_per_second = total_rows / (total_time / 1000) if total_time > 0 else 0
-
-        current, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        mem_after = process.memory_info().rss / 1024 / 1024
-        peak_mb = peak / 1024 / 1024
-
-        # Rule coverage analysis
-        rule_coverage = self._analyze_rule_coverage(
-            detection_matches, desensitization_matches, total_rows
-        )
-
-        # Accuracy analysis
-        accuracy_details = self._analyze_accuracy(
-            df, result_df, field_rules, desensitization_matches
-        )
-
-        # Overall summary
-        total_matched = len(detection_matches)
-        total_desensitized = len(desensitization_matches)
-        overall_coverage = min(100.0, len(rule_coverage) / len(field_rules) * 100) if field_rules else 0
-        overall_accuracy = sum(a.accuracy_rate for a in accuracy_details) / len(accuracy_details) if accuracy_details else 0
+    def __init__(self, db: Session):
+        self.db = db
+    
+    def generate_html_report(self, task, results: List) -> str:
+        """生成HTML格式的检测报告"""
+        output_dir = "uploads/reports"
+        os.makedirs(output_dir, exist_ok=True)
+        timestamp = int(time.time())
+        filename = f"ai_detection_report_{task.id}_{timestamp}.html"
+        filepath = os.path.join(output_dir, filename)
         
-        # 统计敏感字段和非敏感字段
-        sensitive_fields = set(m.column_name for m in detection_matches)
-        sensitive_fields_count = len(sensitive_fields)
-        non_sensitive_fields_count = total_columns - sensitive_fields_count
+        # 统计数据
+        total_rows = task.total_rows or 0
+        found_count = task.found_count or 0
+        high_risk = sum(1 for r in results if r.risk_level == 'high')
+        moderate_risk = sum(1 for r in results if r.risk_level == 'moderate')
+        low_risk = sum(1 for r in results if r.risk_level == 'low')
         
-        # 总匹配次数
-        total_matches = sum(rc.matched_count for rc in rule_coverage)
-
-        summary = {
-            "total_rows": total_rows,
-            "total_columns": total_columns,
-            "configured_rules": len(field_rules),
-            "matched_sensitive_count": total_matched,
-            "desensitized_count": total_desensitized,
-            "overall_coverage_rate": round(overall_coverage, 2),
-            "overall_accuracy_rate": round(overall_accuracy, 2),
-            "detection_time_ms": round(detection_time, 2),
-            "desensitization_time_ms": round(desensitization_time, 2),
-            "total_time_ms": round(total_time, 2),
-            # 新增指标
-            "sensitive_fields_count": sensitive_fields_count,
-            "non_sensitive_fields_count": non_sensitive_fields_count,
-            "total_matches": total_matches,
-            "average_accuracy": round(overall_accuracy, 2)
-        }
-
-        # Recommendations
-        recommendations = self._generate_recommendations(
-            rule_coverage, accuracy_details, field_rules
-        )
-
-        report_id = hashlib.md5(
-            f"{dataset_name}{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:12]
-
-        return ValidationReport(
-            report_id=report_id,
-            report_name=report_name,
-            dataset_name=dataset_name,
-            created_at=datetime.now().isoformat(),
-            summary=summary,
-            rule_coverage=rule_coverage,
-            accuracy_details=accuracy_details,
-            performance=PerformanceMetrics(
-                total_rows=total_rows,
-                total_columns=total_columns,
-                detection_time_ms=round(detection_time, 2),
-                desensitization_time_ms=round(desensitization_time, 2),
-                total_time_ms=round(total_time, 2),
-                rows_per_second=round(rows_per_second, 2),
-                memory_peak_mb=round(peak_mb, 2),
-                # 新增指标
-                sensitive_fields_count=sensitive_fields_count,
-                non_sensitive_fields_count=non_sensitive_fields_count,
-                total_matches=total_matches,
-                average_accuracy=round(overall_accuracy, 2)
-            ),
-            field_rules=field_rules,
-            recommendations=recommendations
-        )
-
-    def _analyze_rule_coverage(
-        self,
-        detection_matches: List[Any],
-        desensitization_matches: List[Any],
-        total_rows: int
-    ) -> List[RuleCoverage]:
-        from collections import defaultdict
-
-        rule_stats = defaultdict(lambda: {"matched": 0, "rows": set(), "name": "", "type": ""})
-
-        for m in detection_matches:
-            rule_stats[m.rule_id]["matched"] += 1
-            rule_stats[m.rule_id]["rows"].add(m.row_index)
-            rule_stats[m.rule_id]["name"] = m.rule_name
-            rule_stats[m.rule_id]["type"] = m.rule_type
-
-        for m in desensitization_matches:
-            if m.rule_id not in rule_stats:
-                rule_stats[m.rule_id]["name"] = m.rule_name
-                rule_stats[m.rule_id]["type"] = "mask"
-            rule_stats[m.rule_id]["rows"].add(m.row_index)
-
-        coverage = []
-        for rule_id, stats in rule_stats.items():
-            coverage_rate = min(100.0, len(stats["rows"]) / total_rows * 100) if total_rows > 0 else 0
-            coverage.append(RuleCoverage(
-                rule_id=rule_id,
-                rule_name=stats["name"],
-                rule_type=stats["type"],
-                matched_count=stats["matched"],
-                matched_rows=len(stats["rows"]),
-                coverage_rate=round(coverage_rate, 2)
-            ))
-
-        return sorted(coverage, key=lambda x: x.matched_count, reverse=True)
-
-    def _analyze_accuracy(
-        self,
-        original_df,
-        desensitized_df,
-        field_rules: Dict[str, int],
-        matches: List[Any]
-    ) -> List[DesensitizationAccuracy]:
-        from collections import defaultdict
-
-        col_stats = defaultdict(lambda: {"total": 0, "desensitized": 0, "sample_orig": "", "sample_des": "", "rule_id": 0, "rule_name": ""})
-
-        for col, rule_id in field_rules.items():
-            if col not in original_df.columns:
-                continue
-            rule_name = next((r["name"] for r in self.desensitization_engine.rules if r["id"] == rule_id), "未知规则")
-            col_stats[col]["rule_id"] = rule_id
-            col_stats[col]["rule_name"] = rule_name
-
-            for idx in original_df.index:
-                orig_val = str(original_df.at[idx, col])
-                des_val = str(desensitized_df.at[idx, col])
-                col_stats[col]["total"] += 1
-                if orig_val != des_val and orig_val and orig_val != "nan":
-                    col_stats[col]["desensitized"] += 1
-                    if not col_stats[col]["sample_orig"]:
-                        col_stats[col]["sample_orig"] = orig_val[:50]
-                        col_stats[col]["sample_des"] = des_val[:50]
-
-        accuracy_list = []
-        for col, stats in col_stats.items():
-            rate = stats["desensitized"] / stats["total"] * 100 if stats["total"] > 0 else 0
-            accuracy_list.append(DesensitizationAccuracy(
-                column_name=col,
-                rule_id=stats["rule_id"],
-                rule_name=stats["rule_name"],
-                total_values=stats["total"],
-                desensitized_count=stats["desensitized"],
-                accuracy_rate=round(rate, 2),
-                sample_original=stats["sample_orig"],
-                sample_desensitized=stats["sample_des"]
-            ))
-
-        return sorted(accuracy_list, key=lambda x: x.accuracy_rate, reverse=True)
-
-    def _generate_recommendations(
-        self,
-        rule_coverage: List[RuleCoverage],
-        accuracy_details: List[DesensitizationAccuracy],
-        field_rules: Dict[str, int]
-    ) -> List[str]:
-        recommendations = []
-
-        low_coverage = [r for r in rule_coverage if r.coverage_rate < 50]
-        if low_coverage:
-            recommendations.append(
-                f"以下规则覆盖率较低（<50%），建议检查数据质量或调整规则配置："
-                f"{', '.join([r.rule_name for r in low_coverage[:3]])}"
-            )
-
-        zero_accuracy = [a for a in accuracy_details if a.accuracy_rate == 0]
-        if zero_accuracy:
-            recommendations.append(
-                f"以下字段未触发脱敏，可能数据格式不匹配规则："
-                f"{', '.join([a.column_name for a in zero_accuracy])}"
-            )
-
-        high_accuracy = [a for a in accuracy_details if a.accuracy_rate >= 95]
-        if high_accuracy:
-            recommendations.append(
-                f"以下字段脱敏效果优秀（≥95%）："
-                f"{', '.join([a.column_name for a in high_accuracy])}"
-            )
-
-        if not recommendations:
-            recommendations.append("脱敏配置整体良好，建议定期复查规则有效性。")
-
-        return recommendations
-
-    def export_json(self, report: ValidationReport, output_path: str):
-        data = {
-            "report_id": report.report_id,
-            "report_name": report.report_name,
-            "dataset_name": report.dataset_name,
-            "created_at": report.created_at,
-            "summary": report.summary,
-            "rule_coverage": [asdict(r) for r in report.rule_coverage],
-            "accuracy_details": [asdict(a) for a in report.accuracy_details],
-            "performance": asdict(report.performance),
-            "field_rules": report.field_rules,
-            "recommendations": report.recommendations
-        }
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        return output_path
-
-    def export_html(self, report: ValidationReport, output_path: str):
-        html = self._render_html(report)
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(html)
-        return output_path
-
-    def export_markdown(self, report: ValidationReport, output_path: str):
-        """导出Markdown格式报告"""
-        md = self._render_markdown(report)
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(md)
-        return output_path
-
-    def export_pdf(self, report: ValidationReport, output_path: str):
-        """导出PDF格式报告"""
-        html_content = self._render_html(report)
-
-        # 策略1: 尝试使用 weasyprint (Linux/macOS友好)
-        try:
-            from weasyprint import HTML
-            html_doc = HTML(string=html_content, base_url=".")
-            html_doc.write_pdf(output_path)
-            return output_path
-        except Exception:
-            pass
-
-        # 策略2: 尝试使用 Playwright (跨平台，需要安装浏览器)
-        try:
-            from playwright.sync_api import sync_playwright
-            with sync_playwright() as p:
-                browser = p.chromium.launch()
-                page = browser.new_page()
-                page.set_content(html_content)
-                page.pdf(path=output_path, format="A4", margin={"top": "20px", "bottom": "20px", "left": "20px", "right": "20px"})
-                browser.close()
-            return output_path
-        except Exception:
-            pass
-
-        # 策略3: 尝试使用 pdfkit + wkhtmltopdf
-        try:
-            import pdfkit
-            pdfkit.from_string(html_content, output_path)
-            return output_path
-        except Exception:
-            pass
-
-        # 策略4: 降级为保存HTML并提示用户
-        html_path = output_path.replace('.pdf', '.html')
-        with open(html_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-        raise Exception(
-            f"PDF生成失败：未找到可用的PDF生成工具。\n"
-            f"已生成HTML报告: {html_path}\n"
-            f"请安装以下任一工具:\n"
-            f"  1. weasyprint (需GTK): pip install weasyprint\n"
-            f"  2. Playwright: pip install playwright && playwright install chromium\n"
-            f"  3. pdfkit + wkhtmltopdf: pip install pdfkit (需安装wkhtmltopdf程序)"
-        )
-
-    def _render_html(self, report: ValidationReport) -> str:
-        s = report.summary
-        p = report.performance
-
-        coverage_rows = ""
-        for r in report.rule_coverage:
-            coverage_rows += f"""
-            <tr>
-              <td>{r.rule_name}</td>
-              <td>{r.rule_type}</td>
-              <td>{r.matched_count}</td>
-              <td>{r.matched_rows}</td>
-              <td>{r.coverage_rate}%</td>
-            </tr>"""
-
-        accuracy_rows = ""
-        for a in report.accuracy_details:
-            accuracy_rows += f"""
-            <tr>
-              <td>{a.column_name}</td>
-              <td>{a.rule_name}</td>
-              <td>{a.total_values}</td>
-              <td>{a.desensitized_count}</td>
-              <td>{a.accuracy_rate}%</td>
-              <td>{a.sample_original} → {a.sample_desensitized}</td>
-            </tr>"""
-
-        recommendations_html = ""
-        for rec in report.recommendations:
-            recommendations_html += f"<li>{rec}</li>"
-
-        return f"""<!DOCTYPE html>
+        # 按类型统计
+        type_stats = {}
+        for r in results:
+            stype = r.sensitive_type or '未知'
+            type_stats[stype] = type_stats.get(stype, 0) + 1
+        
+        # 生成HTML内容
+        html_content = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>{report.report_name}</title>
-<style>
-body {{ font-family: 'Segoe UI', system-ui, sans-serif; margin: 40px; background: #f5f7fa; color: #333; }}
-.container {{ max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }}
-h1 {{ color: #1a73e8; border-bottom: 3px solid #1a73e8; padding-bottom: 12px; }}
-h2 {{ color: #2c5aa0; margin-top: 32px; }}
-.info {{ color: #666; margin-bottom: 24px; }}
-.metrics {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0; }}
-.metric-card {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; }}
-.metric-card.accuracy {{ background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }}
-.metric-card.performance {{ background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%); }}
-.metric-value {{ font-size: 32px; font-weight: bold; }}
-.metric-label {{ font-size: 14px; opacity: 0.9; margin-top: 4px; }}
-table {{ width: 100%; border-collapse: collapse; margin: 16px 0; }}
-th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }}
-th {{ background: #f8f9fa; font-weight: 600; color: #555; }}
-tr:hover {{ background: #f5f7fa; }}
-.recommendations {{ background: #e8f4fd; padding: 20px; border-radius: 8px; border-left: 4px solid #1a73e8; }}
-.recommendations li {{ margin: 8px 0; }}
-.footer {{ margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #999; font-size: 12px; text-align: center; }}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI敏感数据检测报告 - {task.name}</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f7fa; padding: 20px; }}
+        .container {{ max-width: 1200px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); overflow: hidden; }}
+        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; }}
+        .header h1 {{ font-size: 28px; margin-bottom: 10px; }}
+        .header p {{ opacity: 0.9; font-size: 14px; }}
+        .summary {{ padding: 30px; background: #fafafa; border-bottom: 1px solid #eee; }}
+        .summary-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }}
+        .stat-card {{ background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }}
+        .stat-value {{ font-size: 32px; font-weight: bold; color: #667eea; margin: 10px 0; }}
+        .stat-label {{ color: #666; font-size: 14px; }}
+        .risk-high {{ color: #f56c6c; }}
+        .risk-moderate {{ color: #e6a23c; }}
+        .risk-low {{ color: #909399; }}
+        .content {{ padding: 30px; }}
+        .section-title {{ font-size: 20px; margin-bottom: 20px; color: #333; border-left: 4px solid #667eea; padding-left: 12px; }}
+        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+        th {{ background: #f5f7fa; padding: 12px; text-align: left; font-weight: 600; color: #606266; border-bottom: 2px solid #dcdfe6; }}
+        td {{ padding: 12px; border-bottom: 1px solid #ebeef5; }}
+        tr:hover {{ background: #f5f7fa; }}
+        .tag {{ display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; }}
+        .tag-high {{ background: #fef0f0; color: #f56c6c; border: 1px solid #fbc4c4; }}
+        .tag-moderate {{ background: #fdf6ec; color: #e6a23c; border: 1px solid #f5dab1; }}
+        .tag-low {{ background: #f4f4f5; color: #909399; border: 1px solid #d3d4d6; }}
+        .footer {{ padding: 20px 30px; background: #fafafa; border-top: 1px solid #eee; text-align: center; color: #909399; font-size: 12px; }}
+        .type-stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; }}
+        .type-item {{ background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #667eea; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }}
+        .type-name {{ font-weight: 600; color: #333; margin-bottom: 5px; }}
+        .type-count {{ color: #667eea; font-size: 24px; font-weight: bold; }}
+    </style>
 </head>
 <body>
-<div class="container">
-<h1>{report.report_name}</h1>
-<p class="info">
-  报告编号: <strong>{report.report_id}</strong> &nbsp;|&nbsp;
-  数据集: <strong>{report.dataset_name}</strong> &nbsp;|&nbsp;
-  生成时间: <strong>{report.created_at}</strong>
-</p>
-
-<h2>核心指标概览</h2>
-<div class="metrics">
-  <div class="metric-card">
-    <div class="metric-value">{s['overall_accuracy_rate']}%</div>
-    <div class="metric-label">脱敏准确率</div>
-  </div>
-  <div class="metric-card accuracy">
-    <div class="metric-value">{s['overall_coverage_rate']}%</div>
-    <div class="metric-label">规则覆盖率</div>
-  </div>
-  <div class="metric-card performance">
-    <div class="metric-value">{p.rows_per_second}</div>
-    <div class="metric-label">处理速度 (行/秒)</div>
-  </div>
-  <div class="metric-card">
-    <div class="metric-value">{p.total_time_ms}ms</div>
-    <div class="metric-label">总耗时</div>
-  </div>
-</div>
-
-<h2>性能指标</h2>
-<table>
-  <tr><th>指标</th><th>数值</th></tr>
-  <tr><td>总数据行数</td><td>{p.total_rows}</td></tr>
-  <tr><td>总字段数</td><td>{p.total_columns}</td></tr>
-  <tr><td>敏感字段数</td><td>{p.sensitive_fields_count}</td></tr>
-  <tr><td>非敏感字段数</td><td>{p.non_sensitive_fields_count}</td></tr>
-  <tr><td>识别耗时</td><td>{p.detection_time_ms} ms</td></tr>
-  <tr><td>脱敏耗时</td><td>{p.desensitization_time_ms} ms</td></tr>
-  <tr><td>总耗时</td><td>{p.total_time_ms} ms</td></tr>
-  <tr><td>处理速度</td><td>{p.rows_per_second} 行/秒</td></tr>
-  <tr><td>峰值内存</td><td>{p.memory_peak_mb} MB</td></tr>
-  <tr><td>总匹配次数</td><td>{p.total_matches}</td></tr>
-  <tr><td>平均准确率</td><td>{p.average_accuracy}%</td></tr>
-</table>
-
-<h2>规则覆盖率详情</h2>
-<table>
-  <tr><th>规则名称</th><th>规则类型</th><th>匹配次数</th><th>涉及行数</th><th>覆盖率</th></tr>
-  {coverage_rows}
-</table>
-
-<h2>脱敏准确率详情</h2>
-<table>
-  <tr><th>字段</th><th>应用规则</th><th>总数据</th><th>已脱敏</th><th>准确率</th><th>示例</th></tr>
-  {accuracy_rows}
-</table>
-
-<h2>优化建议</h2>
-<div class="recommendations">
-  <ul>{recommendations_html}</ul>
-</div>
-
-<div class="footer">
-  敏感信息识别与脱敏平台 | 报告自动生成于 {report.created_at}
-</div>
-</div>
-</body>
-</html>"""
-
-    def _render_markdown(self, report: ValidationReport) -> str:
-        """渲染Markdown格式报告"""
-        s = report.summary
-        p = report.performance
-
-        coverage_md = ""
-        for r in report.rule_coverage:
-            coverage_md += f"| {r.rule_name} | {r.rule_type} | {r.matched_count} | {r.matched_rows} | {r.coverage_rate}% |\n"
-
-        accuracy_md = ""
-        for a in report.accuracy_details:
-            accuracy_md += f"| {a.column_name} | {a.rule_name} | {a.total_values} | {a.desensitized_count} | {a.accuracy_rate}% | `{a.sample_original}` → `{a.sample_desensitized}` |\n"
-
-        recommendations_md = ""
-        for rec in report.recommendations:
-            recommendations_md += f"- {rec}\n"
-
-        return f"""# {report.report_name}
-
-> **报告编号**: `{report.report_id}`  
-> **数据集**: `{report.dataset_name}`  
-> **生成时间**: {report.created_at}
-
----
-
-## 核心指标概览
-
-| 指标 | 数值 |
-|------|------|
-| 脱敏准确率 | **{s['overall_accuracy_rate']}%** |
-| 规则覆盖率 | **{s['overall_coverage_rate']}%** |
-| 处理速度 | **{p.rows_per_second} 行/秒** |
-| 总耗时 | **{p.total_time_ms} ms** |
-
----
-
-## 性能指标
-
-| 指标 | 数值 |
-|------|------|
-| 总数据行数 | {p.total_rows} |
-| 总字段数 | {p.total_columns} |
-| 敏感字段数 | {p.sensitive_fields_count} |
-| 非敏感字段数 | {p.non_sensitive_fields_count} |
-| 识别耗时 | {p.detection_time_ms} ms |
-| 脱敏耗时 | {p.desensitization_time_ms} ms |
-| 总耗时 | {p.total_time_ms} ms |
-| 处理速度 | {p.rows_per_second} 行/秒 |
-| 峰值内存 | {p.memory_peak_mb} MB |
-| 总匹配次数 | {p.total_matches} |
-| 平均准确率 | {p.average_accuracy}% |
-
----
-
-## 规则覆盖率详情
-
-| 规则名称 | 规则类型 | 匹配次数 | 涉及行数 | 覆盖率 |
-|----------|----------|----------|----------|--------|
-{coverage_md}
-
----
-
-## 脱敏准确率详情
-
-| 字段 | 应用规则 | 总数据 | 已脱敏 | 准确率 | 示例 |
-|------|----------|--------|--------|--------|------|
-{accuracy_md}
-
----
-
-## 优化建议
-
-{recommendations_md}
-
----
-
-*敏感信息识别与脱敏平台 | 报告自动生成于 {report.created_at}*
+    <div class="container">
+        <div class="header">
+            <h1>🔍 AI敏感数据检测报告</h1>
+            <p>任务名称：{task.name} | 数据集：{task.dataset_name}</p>
+            <p>生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        </div>
+        
+        <div class="summary">
+            <h2 style="font-size: 18px; margin-bottom: 10px;">📊 检测概览</h2>
+            <div class="summary-grid">
+                <div class="stat-card">
+                    <div class="stat-label">总行数</div>
+                    <div class="stat-value">{total_rows}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">发现敏感数据</div>
+                    <div class="stat-value">{found_count}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">高风险</div>
+                    <div class="stat-value risk-high">{high_risk}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">中风险</div>
+                    <div class="stat-value risk-moderate">{moderate_risk}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">低风险</div>
+                    <div class="stat-value risk-low">{low_risk}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">耗时</div>
+                    <div class="stat-value" style="font-size: 24px;">{task.duration_seconds or 0:.1f}s</div>
+                </div>
+            </div>
+            
+            <h3 style="font-size: 16px; margin: 30px 0 15px;">📈 敏感类型分布</h3>
+            <div class="type-stats">
 """
+        
+        for stype, count in sorted(type_stats.items(), key=lambda x: x[1], reverse=True):
+            html_content += f"""
+                <div class="type-item">
+                    <div class="type-name">{stype}</div>
+                    <div class="type-count">{count}</div>
+                </div>
+"""
+        
+        html_content += f"""
+            </div>
+        </div>
+        
+        <div class="content">
+            <h2 class="section-title">📋 检测结果详情</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">行号</th>
+                        <th style="width: 100px;">列名</th>
+                        <th>原始值</th>
+                        <th style="width: 100px;">敏感类型</th>
+                        <th style="width: 80px;">置信度</th>
+                        <th style="width: 80px;">风险等级</th>
+                        <th>法规依据</th>
+                    </tr>
+                </thead>
+                <tbody>
+"""
+        
+        for r in results[:100]:  # 限制显示前100条，避免报告过大
+            confidence_pct = f"{r.confidence * 100:.0f}%"
+            risk_class = f"tag-{r.risk_level}"
+            
+            html_content += f"""
+                    <tr>
+                        <td>{r.row_index}</td>
+                        <td>{r.column_name}</td>
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{r.original_value}">{r.original_value[:50]}</td>
+                        <td>{r.sensitive_type}</td>
+                        <td>{confidence_pct}</td>
+                        <td><span class="tag {risk_class}">{r.risk_level}</span></td>
+                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{r.regulation_ref}">{r.regulation_ref[:50] if r.regulation_ref else '-'}</td>
+                    </tr>
+"""
+        
+        if len(results) > 100:
+            html_content += f"""
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #909399; padding: 20px;">
+                            ... 还有 {len(results) - 100} 条结果未显示 ...
+                        </td>
+                    </tr>
+"""
+        
+        html_content += f"""
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p>本报告由 AI敏感信息智能脱敏平台 自动生成</p>
+            <p>报告生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | 任务ID：{task.id}</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        logger.info(f"HTML报告已生成 | 任务ID: {task.id} | 文件: {filepath}")
+        return filepath
+    
+    def generate_markdown_report(self, task, results: List) -> str:
+        """生成Markdown格式的检测报告"""
+        output_dir = "uploads/reports"
+        os.makedirs(output_dir, exist_ok=True)
+        timestamp = int(time.time())
+        filename = f"ai_detection_report_{task.id}_{timestamp}.md"
+        filepath = os.path.join(output_dir, filename)
+        
+        # 统计数据
+        total_rows = task.total_rows or 0
+        found_count = task.found_count or 0
+        high_risk = sum(1 for r in results if r.risk_level == 'high')
+        moderate_risk = sum(1 for r in results if r.risk_level == 'moderate')
+        low_risk = sum(1 for r in results if r.risk_level == 'low')
+        
+        # 按类型统计
+        type_stats = {}
+        for r in results:
+            stype = r.sensitive_type or '未知'
+            type_stats[stype] = type_stats.get(stype, 0) + 1
+        
+        # 生成Markdown内容
+        md_content = f"""# 🔍 AI敏感数据检测报告
+
+## 基本信息
+
+- **任务名称**: {task.name}
+- **数据集**: {task.dataset_name}
+- **生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+- **任务ID**: {task.id}
+
+---
+
+## 📊 检测概览
+
+| 指标 | 数值 |
+|------|------|
+| 总行数 | {total_rows} |
+| 发现敏感数据 | {found_count} |
+| 🔴 高风险 | {high_risk} |
+| 🟡 中风险 | {moderate_risk} |
+| ⚪ 低风险 | {low_risk} |
+| 耗时 | {task.duration_seconds or 0:.1f} 秒 |
+
+---
+
+## 📈 敏感类型分布
+
+"""
+        
+        for stype, count in sorted(type_stats.items(), key=lambda x: x[1], reverse=True):
+            md_content += f"- **{stype}**: {count} 条\n"
+        
+        md_content += f"""
+---
+
+## 📋 检测结果详情
+
+> 显示前100条结果，共 {len(results)} 条
+
+| 行号 | 列名 | 原始值 | 敏感类型 | 置信度 | 风险等级 | 法规依据 |
+|------|------|--------|----------|--------|----------|----------|
+"""
+        
+        for r in results[:100]:
+            confidence_pct = f"{r.confidence * 100:.0f}%"
+            original_short = r.original_value[:30].replace('|', '\\|') if r.original_value else ''
+            regulation_short = (r.regulation_ref[:30].replace('|', '\\|') if r.regulation_ref else '-') 
+            
+            md_content += f"| {r.row_index} | {r.column_name} | {original_short} | {r.sensitive_type} | {confidence_pct} | {r.risk_level} | {regulation_short} |\n"
+        
+        if len(results) > 100:
+            md_content += f"\n> ... 还有 {len(results) - 100} 条结果未显示 ...\n"
+        
+        md_content += f"""
+---
+
+## 📝 说明
+
+- **置信度**: AI模型对检测结果的可信程度（0-100%）
+- **风险等级**: 
+  - 🔴 high: 高风险，建议立即处理
+  - 🟡 moderate: 中风险，建议尽快处理
+  - ⚪ low: 低风险，可以稍后处理
+
+---
+
+*本报告由 AI敏感信息智能脱敏平台 自动生成*
+
+**报告生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(md_content)
+        
+        logger.info(f"Markdown报告已生成 | 任务ID: {task.id} | 文件: {filepath}")
+        return filepath
+
+    def generate_desensitization_html_report(self, task, results: List) -> str:
+        output_dir = "uploads/reports"
+        os.makedirs(output_dir, exist_ok=True)
+        timestamp = int(time.time())
+        filename = f"ai_desensitization_report_{task.id}_{timestamp}.html"
+        filepath = os.path.join(output_dir, filename)
+
+        total = task.total_rows or 0
+        processed = task.processed_rows or 0
+        # 使用 output_mode 字段，如果不存在则默认为 copy
+        mode_label = "生成副本" if getattr(task, 'output_mode', 'copy') == "copy" else "覆盖原数据"
+
+        html = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI脱敏报告 - {task.name}</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f7fa; padding: 20px; }}
+        .container {{ max-width: 1200px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); overflow: hidden; }}
+        .header {{ background: linear-gradient(135deg, #e6a23c 0%, #f56c6c 100%); color: white; padding: 30px; }}
+        .header h1 {{ font-size: 28px; margin-bottom: 10px; }}
+        .header p {{ opacity: 0.9; font-size: 14px; }}
+        .summary {{ padding: 30px; background: #fafafa; }}
+        .summary-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }}
+        .stat-card {{ background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }}
+        .stat-value {{ font-size: 32px; font-weight: bold; color: #e6a23c; margin: 10px 0; }}
+        .stat-label {{ color: #666; font-size: 14px; }}
+        .content {{ padding: 30px; }}
+        .section-title {{ font-size: 20px; margin-bottom: 20px; border-left: 4px solid #e6a23c; padding-left: 12px; }}
+        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+        th {{ background: #f5f7fa; padding: 12px; text-align: left; font-weight: 600; color: #606266; border-bottom: 2px solid #dcdfe6; }}
+        td {{ padding: 12px; border-bottom: 1px solid #ebeef5; }}
+        tr:hover {{ background: #fff7e6; }}
+        .tag {{ display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; }}
+        .tag-mask {{ background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; }}
+        .tag-synthetic {{ background: #fdf6ec; color: #e6a23c; border: 1px solid #f5dab1; }}
+        .d-val {{ color: #e6a23c; font-weight: 500; }}
+        .footer {{ padding: 20px 30px; background: #fafafa; text-align: center; color: #909399; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 AI智能脱敏报告</h1>
+            <p>任务名称：{task.name} | 脱敏模式：{mode_label}</p>
+            <p>生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        </div>
+        <div class="summary">
+            <h2 style="font-size: 18px; margin-bottom: 10px;">📊 脱敏概览</h2>
+            <div class="summary-grid">
+                <div class="stat-card"><div class="stat-label">总行数</div><div class="stat-value">{total}</div></div>
+                <div class="stat-card"><div class="stat-label">已处理</div><div class="stat-value">{processed}</div></div>
+                <div class="stat-card"><div class="stat-label">耗时</div><div class="stat-value" style="font-size:24px;">{task.duration_seconds or 0:.1f}s</div></div>
+                <div class="stat-card"><div class="stat-label">脱敏模式</div><div class="stat-value" style="font-size:18px;">{mode_label}</div></div>
+            </div>
+        </div>
+        <div class="content">
+            <h2 class="section-title">📋 脱敏结果详情</h2>
+            <table><thead><tr><th>行号</th><th>列名</th><th>原始值</th><th>脱敏后</th><th>方法</th></tr></thead><tbody>
+"""
+        for r in results[:100]:
+            original = r.original_value[:50] if r.original_value else ''
+            desensitized = r.desensitized_value[:50] if r.desensitized_value else ''
+            method_val = getattr(r, 'method', '') or ''
+            tag_class = 'mask' if method_val in ('mask', 'full_mask', 'partial_mask') else 'synthetic'
+            tag_label = '遮盖' if tag_class == 'mask' else '仿真'
+            html += f"""<tr><td>{r.row_index}</td><td>{r.column_name}</td><td title="{r.original_value}">{original}</td><td class="d-val">{desensitized}</td><td><span class="tag tag-{tag_class}">{tag_label}</span></td></tr>\n"""
+
+        if len(results) > 100:
+            html += f"""<tr><td colspan="5" style="text-align:center;color:#909399;padding:20px;">... 还有 {len(results) - 100} 条 ...</td></tr>\n"""
+
+        html += f"""</tbody></table></div>
+        <div class="footer"><p>本报告由 AI敏感信息智能脱敏平台 自动生成</p><p>生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | 任务ID：{task.id}</p></div>
+    </div></body></html>"""
+
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(html)
+        logger.info(f"脱敏HTML报告已生成 | 任务ID: {task.id}")
+        return filepath
+
+    def generate_desensitization_markdown_report(self, task, results: List) -> str:
+        output_dir = "uploads/reports"
+        os.makedirs(output_dir, exist_ok=True)
+        timestamp = int(time.time())
+        filename = f"ai_desensitization_report_{task.id}_{timestamp}.md"
+        filepath = os.path.join(output_dir, filename)
+
+        # 使用 output_mode 字段，如果不存在则默认为 copy
+        mode_label = "生成副本" if getattr(task, 'output_mode', 'copy') == "copy" else "覆盖原数据"
+
+        md = f"""# 🔒 AI智能脱敏报告
+
+## 基本信息
+- **任务名称**: {task.name}
+- **脱敏模式**: {mode_label}
+- **生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+- **任务ID**: {task.id}
+
+---
+
+## 📊 脱敏概览
+
+| 指标 | 数值 |
+|------|------|
+| 总行数 | {task.total_rows or 0} |
+| 已处理 | {task.processed_rows or 0} |
+| 耗时 | {task.duration_seconds or 0:.1f} 秒 |
+| 脱敏模式 | {mode_label} |
+
+---
+
+## 📋 脱敏结果详情
+
+> 共 {len(results)} 条
+
+| 行号 | 列名 | 原始值 | 脱敏后 | 方法 |
+|------|------|--------|--------|------|
+"""
+        for r in results[:100]:
+            orig = (r.original_value or '')[:30].replace('|', '\\|')
+            dval = (r.desensitized_value or '')[:30].replace('|', '\\|')
+            method_val = getattr(r, 'method', '') or ''
+            method = '遮盖' if method_val in ('mask', 'full_mask', 'partial_mask') else '仿真'
+            md += f"| {r.row_index} | {r.column_name} | {orig} | {dval} | {method} |\n"
+
+        if len(results) > 100:
+            md += f"\n> ... 还有 {len(results) - 100} 条结果未显示 ...\n"
+
+        md += f"""
+---
+
+*本报告由 AI敏感信息智能脱敏平台 自动生成*
+**报告生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(md)
+        logger.info(f"脱敏Markdown报告已生成 | 任务ID: {task.id}")
+        return filepath

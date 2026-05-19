@@ -4,9 +4,22 @@
       <template #header>
         <div class="card-header">
           <span>脱敏任务列表</span>
-          <el-button type="primary" @click="$router.push('/desensitization/tasks/create')">
-            <el-icon><Plus /></el-icon> 创建任务
-          </el-button>
+          <el-space>
+            <el-tooltip :content="autoRefresh ? '自动刷新已开启' : '自动刷新已关闭'" placement="top">
+              <el-switch
+                v-model="autoRefresh"
+                active-text="自动刷新"
+                inline-prompt
+                @change="toggleAutoRefresh"
+              />
+            </el-tooltip>
+            <el-button :loading="refreshing" @click="handleManualRefresh">
+              <el-icon><Refresh /></el-icon> 刷新
+            </el-button>
+            <el-button type="primary" @click="$router.push('/desensitization/tasks/create')">
+              <el-icon><Plus /></el-icon> 创建任务
+            </el-button>
+          </el-space>
         </div>
       </template>
       
@@ -56,11 +69,9 @@
                 </el-button>
               </el-tooltip>
               <el-dropdown @command="(cmd) => handleReportCommand(row, cmd)">
-                <el-tooltip content="生成和下载脱敏报告" placement="top">
-                  <el-button type="warning" size="small" class="glass-btn-solid">
-                    报告<el-icon class="el-icon--right"><arrow-down /></el-icon>
-                  </el-button>
-                </el-tooltip>
+                <el-button type="warning" size="small" class="glass-btn-solid">
+                  报告<el-icon class="el-icon--right"><arrow-down /></el-icon>
+                </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="preview">
@@ -93,10 +104,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElIcon } from 'element-plus'
-import { Plus, ArrowDown, View, Document, DocumentCopy, Download } from '@element-plus/icons-vue'
+import { Plus, ArrowDown, View, Document, DocumentCopy, Download, Refresh } from '@element-plus/icons-vue'
 import { getDesensitizationTasks, downloadDesensitizedFile, generateReport, downloadReport } from '@/api/desensitization'
 
 const router = useRouter()
@@ -105,6 +116,9 @@ const tasks = ref([])
 const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
+const refreshing = ref(false)
+const autoRefresh = ref(true)
+let refreshTimer = null
 
 const getStatusType = (status) => {
   const map = {
@@ -116,6 +130,10 @@ const getStatusType = (status) => {
   return map[status] || 'info'
 }
 
+const hasRunningTasks = computed(() => {
+  return tasks.value.some(t => t.status === 'running' || t.status === 'pending')
+})
+
 const loadData = async () => {
   loading.value = true
   try {
@@ -126,6 +144,77 @@ const loadData = async () => {
     console.error(e)
   } finally {
     loading.value = false
+  }
+}
+
+const handleManualRefresh = async () => {
+  refreshing.value = true
+  try {
+    await loadData()
+    ElMessage.success('刷新成功')
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('刷新失败')
+  } finally {
+    refreshing.value = false
+  }
+}
+
+const startAutoRefresh = () => {
+  stopAutoRefresh()
+  refreshTimer = setInterval(async () => {
+    try {
+      const res = await getDesensitizationTasks({ page: page.value, page_size: pageSize.value })
+      const newTasks = res.data.items || []
+      const newTotal = res.data.total || 0
+      
+      // 智能更新：只更新状态/进度发生变化的行，避免整表闪烁
+      tasks.value = tasks.value.map(oldTask => {
+        const newTask = newTasks.find(t => t.id === oldTask.id)
+        if (newTask) {
+          return { ...oldTask, ...newTask }
+        }
+        return oldTask
+      })
+      
+      // 补充新出现的任务
+      const existingIds = tasks.value.map(t => t.id)
+      const newItems = newTasks.filter(t => !existingIds.includes(t.id))
+      if (newItems.length > 0) {
+        tasks.value = [...newItems, ...tasks.value].slice(0, pageSize.value)
+      }
+      
+      total.value = newTotal
+      
+      // 如果没有进行中的任务了，停止自动刷新
+      if (!hasRunningTasks.value) {
+        stopAutoRefresh()
+      }
+    } catch (e) {
+      console.error('自动刷新失败:', e)
+    }
+  }, 3000)
+}
+
+const stopAutoRefresh = () => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+const toggleAutoRefresh = () => {
+  autoRefresh.value = !autoRefresh.value
+  if (autoRefresh.value) {
+    if (hasRunningTasks.value) {
+      startAutoRefresh()
+      ElMessage.success('已开启自动刷新（每3秒）')
+    } else {
+      ElMessage.info('当前没有进行中的任务，将在有新任务时自动启动')
+    }
+  } else {
+    stopAutoRefresh()
+    ElMessage.info('已停止自动刷新')
   }
 }
 
@@ -190,7 +279,15 @@ const handleReportCommand = async (row, cmd) => {
 }
 
 onMounted(() => {
-  loadData()
+  loadData().then(() => {
+    if (autoRefresh.value && hasRunningTasks.value) {
+      startAutoRefresh()
+    }
+  })
+})
+
+onUnmounted(() => {
+  stopAutoRefresh()
 })
 </script>
 

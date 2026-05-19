@@ -377,7 +377,7 @@
 
           <el-alert
             title="个性化界面体验"
-            description="平台提供三种精心设计的页面风格，您可以根据个人喜好随时切换。"
+            description="平台提供四种精心设计的页面风格，您可以根据个人喜好随时切换。"
             type="info"
             show-icon
             :closable="false"
@@ -386,20 +386,20 @@
 
           <h4>支持的风格</h4>
           <el-row :gutter="16">
-            <el-col :span="8">
+            <el-col :span="6">
               <el-card shadow="hover" class="theme-card">
                 <div class="theme-preview classic-preview">
-                  <div class="preview-sidebar"></div>
+                  <div class="preview-sidebar-white"></div>
                   <div class="preview-content"></div>
                 </div>
                 <div class="theme-name">
                   <el-icon><Sunny /></el-icon>
                   <span>经典风格</span>
                 </div>
-                <div class="theme-desc">简洁明快的蓝白配色，清晰易读，适合日常办公</div>
+                <div class="theme-desc">苹果风格白底侧边栏，简洁优雅，适合各类办公场景</div>
               </el-card>
             </el-col>
-            <el-col :span="8">
+            <el-col :span="6">
               <el-card shadow="hover" class="theme-card">
                 <div class="theme-preview dark-purple-preview">
                   <div class="preview-sidebar"></div>
@@ -412,7 +412,7 @@
                 <div class="theme-desc">深邃紫雾玻璃质感，神秘优雅，适合夜间使用</div>
               </el-card>
             </el-col>
-            <el-col :span="8">
+            <el-col :span="6">
               <el-card shadow="hover" class="theme-card">
                 <div class="theme-preview black-gold-preview">
                   <div class="preview-sidebar"></div>
@@ -423,6 +423,19 @@
                   <span>黑金风格</span>
                 </div>
                 <div class="theme-desc">青苔紫夜奢华质感，沉稳大气，彰显专业品质</div>
+              </el-card>
+            </el-col>
+            <el-col :span="6">
+              <el-card shadow="hover" class="theme-card">
+                <div class="theme-preview vue-classic-preview">
+                  <div class="preview-sidebar"></div>
+                  <div class="preview-content"></div>
+                </div>
+                <div class="theme-name">
+                  <el-icon><Connection /></el-icon>
+                  <span>Vue经典</span>
+                </div>
+                <div class="theme-desc">传统Vue蓝白风格，经典侧边栏布局，熟悉可靠</div>
               </el-card>
             </el-col>
           </el-row>
@@ -442,7 +455,7 @@
               </el-step>
               <el-step title="选择新风格">
                 <template #description>
-                  点击想要切换的风格（经典 / 暗紫 / 黑金），页面会立即应用新风格
+                  点击想要切换的风格（经典 / Vue经典 / 暗紫 / 黑金），页面会立即应用新风格
                 </template>
               </el-step>
             </el-steps>
@@ -452,13 +465,16 @@
             <h4>风格特点对比</h4>
             <el-descriptions :column="1" border>
               <el-descriptions-item label="经典风格">
-                采用传统的蓝白配色方案，界面清晰明亮，适合白天办公使用，长时间操作不易疲劳
+                采用苹果风格白色侧边栏设计，搭配浅灰内容底色，界面简洁清晰，适合日常办公使用
               </el-descriptions-item>
               <el-descriptions-item label="暗紫风格">
                 采用暮色紫雾玻璃质感设计，深色背景搭配金色文字，降低屏幕亮度刺激，适合夜间或暗光环境
               </el-descriptions-item>
               <el-descriptions-item label="黑金风格">
                 采用青苔紫夜奢华质感，深色基底搭配淡金装饰，视觉效果沉稳大气，适合演示汇报场景
+              </el-descriptions-item>
+              <el-descriptions-item label="Vue经典">
+                采用传统Vue管理后台蓝白配色方案，经典深色侧边栏布局，易于辨识和使用
               </el-descriptions-item>
             </el-descriptions>
           </div>
@@ -686,7 +702,13 @@ const reportTypes = [
 
 <style scoped>
 .user-manual {
-  padding: 20px 20px 20px 6em;
+  width: 100%;
+  padding: 20px;
+}
+
+/* 让整个页面向左对齐，移除左侧多余空间 */
+.user-manual :deep(.el-card) {
+  margin-left: 0;
 }
 
 .card-header {
@@ -701,6 +723,86 @@ const reportTypes = [
   gap: 8px;
   font-size: 16px;
   font-weight: 500;
+  padding-left: 1.5em;
+}
+
+/* 折叠面板内容区域向右缩进 */
+:deep(.el-collapse-item__wrap) {
+  .el-collapse-item__content {
+    padding-left: 4em !important;
+    padding-right: 2em !important;
+  }
+}
+
+/* 特定章节的内容额外缩进 */
+:deep(.el-collapse-item) {
+  /* 数据源配置详解、敏感数据识别详解、数据脱敏详解、报告管理、管理功能、页面风格切换、平台运营成效、常见问题 */
+  &:nth-child(2) .el-collapse-item__content,
+  &:nth-child(3) .el-collapse-item__content,
+  &:nth-child(4) .el-collapse-item__content,
+  &:nth-child(5) .el-collapse-item__content,
+  &:nth-child(6) .el-collapse-item__content,
+  &:nth-child(7) .el-collapse-item__content,
+  &:nth-child(8) .el-collapse-item__content,
+  &:nth-child(9) .el-collapse-item__content {
+    h4 {
+      margin-left: 2em;
+    }
+    
+    p, ul, ol {
+      margin-left: 2em;
+    }
+    
+    .el-table {
+      margin-left: 2em;
+      margin-right: 2em;
+      width: calc(100% - 4em);
+    }
+    
+    .el-steps {
+      margin-left: 2em;
+      margin-right: 2em;
+    }
+    
+    .el-timeline {
+      margin-left: 2em;
+    }
+    
+    .el-descriptions {
+      margin-left: 2em;
+      margin-right: 2em;
+      width: calc(100% - 4em);
+    }
+    
+    .el-row {
+      margin-left: 2em !important;
+      margin-right: 2em !important;
+    }
+    
+    .el-alert {
+      margin-left: 2em;
+      margin-right: 2em;
+    }
+    
+    .el-tabs {
+      margin-left: 2em;
+      margin-right: 2em;
+    }
+    
+    /* 嵌套的折叠面板（常见问题） */
+    .el-collapse {
+      margin-left: 2em;
+      margin-right: 2em;
+      
+      .el-collapse-item__content {
+        padding-left: 2em !important;
+        
+        p, ul, ol {
+          margin-left: 1em;
+        }
+      }
+    }
+  }
 }
 
 .step-detail {
@@ -792,6 +894,32 @@ const reportTypes = [
 }
 .black-gold-preview .preview-content {
   background: linear-gradient(135deg, #210124 0%, #1a011c 100%);
+}
+
+.github-preview {
+  background: #f6f8fa;
+}
+.github-preview .preview-sidebar {
+  background: #1b1f23;
+}
+.github-preview .preview-content {
+  background: #f6f8fa;
+}
+
+.vue-classic-preview {
+  background: #f0f2f5;
+}
+.vue-classic-preview .preview-sidebar {
+  background: #001529;
+}
+.vue-classic-preview .preview-content {
+  background: #f0f2f5;
+}
+
+.preview-sidebar-white {
+  width: 30%;
+  height: 100%;
+  background: #ffffff;
 }
 
 .theme-name {

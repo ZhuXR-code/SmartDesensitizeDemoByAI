@@ -15,6 +15,8 @@ backend/venv/
 # Upload & Data
 uploads/*
 !uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
 backend/data/
 backend/*.db
 

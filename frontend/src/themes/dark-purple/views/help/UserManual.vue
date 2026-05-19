@@ -377,7 +377,7 @@
 
           <el-alert
             title="个性化界面体验"
-            description="平台提供三种精心设计的页面风格，您可以根据个人喜好随时切换。"
+            description="平台提供四种精心设计的页面风格，您可以根据个人喜好随时切换。"
             type="info"
             show-icon
             :closable="false"
@@ -386,20 +386,20 @@
 
           <h4>支持的风格</h4>
           <el-row :gutter="16">
-            <el-col :span="8">
+            <el-col :span="6">
               <el-card shadow="hover" class="theme-card">
                 <div class="theme-preview classic-preview">
-                  <div class="preview-sidebar"></div>
+                  <div class="preview-sidebar-white"></div>
                   <div class="preview-content"></div>
                 </div>
                 <div class="theme-name">
                   <el-icon><Sunny /></el-icon>
                   <span>经典风格</span>
                 </div>
-                <div class="theme-desc">简洁明快的蓝白配色，清晰易读，适合日常办公</div>
+                <div class="theme-desc">苹果风格白底侧边栏，简洁优雅，适合各类办公场景</div>
               </el-card>
             </el-col>
-            <el-col :span="8">
+            <el-col :span="6">
               <el-card shadow="hover" class="theme-card">
                 <div class="theme-preview dark-purple-preview">
                   <div class="preview-sidebar"></div>
@@ -412,7 +412,7 @@
                 <div class="theme-desc">深邃紫雾玻璃质感，神秘优雅，适合夜间使用</div>
               </el-card>
             </el-col>
-            <el-col :span="8">
+            <el-col :span="6">
               <el-card shadow="hover" class="theme-card">
                 <div class="theme-preview black-gold-preview">
                   <div class="preview-sidebar"></div>
@@ -423,6 +423,19 @@
                   <span>黑金风格</span>
                 </div>
                 <div class="theme-desc">青苔紫夜奢华质感，沉稳大气，彰显专业品质</div>
+              </el-card>
+            </el-col>
+            <el-col :span="6">
+              <el-card shadow="hover" class="theme-card">
+                <div class="theme-preview vue-classic-preview">
+                  <div class="preview-sidebar"></div>
+                  <div class="preview-content"></div>
+                </div>
+                <div class="theme-name">
+                  <el-icon><Connection /></el-icon>
+                  <span>Vue经典</span>
+                </div>
+                <div class="theme-desc">传统Vue蓝白风格，经典侧边栏布局，熟悉可靠</div>
               </el-card>
             </el-col>
           </el-row>
@@ -442,7 +455,7 @@
               </el-step>
               <el-step title="选择新风格">
                 <template #description>
-                  点击想要切换的风格（经典 / 暗紫 / 黑金），页面会立即应用新风格
+                  点击想要切换的风格（经典 / Vue经典 / 暗紫 / 黑金），页面会立即应用新风格
                 </template>
               </el-step>
             </el-steps>
@@ -452,13 +465,16 @@
             <h4>风格特点对比</h4>
             <el-descriptions :column="1" border>
               <el-descriptions-item label="经典风格">
-                采用传统的蓝白配色方案，界面清晰明亮，适合白天办公使用，长时间操作不易疲劳
+                采用苹果风格白色侧边栏设计，搭配浅灰内容底色，界面简洁清晰，适合日常办公使用
               </el-descriptions-item>
               <el-descriptions-item label="暗紫风格">
                 采用暮色紫雾玻璃质感设计，深色背景搭配金色文字，降低屏幕亮度刺激，适合夜间或暗光环境
               </el-descriptions-item>
               <el-descriptions-item label="黑金风格">
                 采用青苔紫夜奢华质感，深色基底搭配淡金装饰，视觉效果沉稳大气，适合演示汇报场景
+              </el-descriptions-item>
+              <el-descriptions-item label="Vue经典">
+                采用传统Vue管理后台蓝白配色方案，经典深色侧边栏布局，易于辨识和使用
               </el-descriptions-item>
             </el-descriptions>
           </div>
@@ -548,8 +564,200 @@
           </el-alert>
         </el-collapse-item>
 
-        <!-- 常见问题 -->
+        <!-- AI智能功能亮点 -->
         <el-collapse-item name="9">
+          <template #title>
+            <div class="collapse-title">
+              <el-icon><Cpu /></el-icon>
+              <span>AI智能功能亮点</span>
+            </div>
+          </template>
+
+          <el-alert
+            title="不止于脱敏，更是全流程智能数据安全治理"
+            description="相比传统仅提供单一脱敏功能的工具，本平台基于AI技术构建了从识别到脱敏的完整闭环，实现真正的智能化数据安全治理。"
+            type="success"
+            show-icon
+            :closable="false"
+            style="margin-bottom: 20px"
+          />
+
+          <h4>🚀 全流程自动化（传统工具 vs 本平台）</h4>
+          <el-descriptions :column="1" border>
+            <el-descriptions-item label="传统脱敏工具">
+              仅提供脱敏功能，用户需手动识别敏感字段、手动配置规则、手动上传数据，流程断裂，效率低下
+            </el-descriptions-item>
+            <el-descriptions-item label="本平台">
+              <el-tag type="success">识别→推荐→脱敏→报告</el-tag> 全流程自动化，AI自动识别敏感数据并推荐最优脱敏规则，一键完成从发现到保护的全过程
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <div class="detail-section">
+            <h4>🌍 多语言智能识别（行业首创）</h4>
+            <p>传统工具仅支持中文或英文，本平台基于字符集特征分析技术，<strong>自动检测6种语言</strong>：</p>
+            <el-row :gutter="10">
+              <el-col :span="4" v-for="lang in multilingualSupport" :key="lang.name">
+                <el-card shadow="hover" class="lang-card">
+                  <el-tag :type="lang.type" size="large">{{ lang.name }}</el-tag>
+                  <div class="lang-desc">{{ lang.desc }}</div>
+                </el-card>
+              </el-col>
+            </el-row>
+            <el-alert
+              title="技术优势"
+              type="info"
+              show-icon
+              :closable="false"
+              style="margin-top: 15px"
+            >
+              <p>基于字符集特征自动判断每行数据语言，无需用户手动选择，准确率超过95%，大幅降低多语言数据处理门槛。</p>
+            </el-alert>
+          </div>
+
+          <div class="detail-section">
+            <h4>⚡ 高性能异步处理（速度领先）</h4>
+            <el-descriptions :column="1" border>
+              <el-descriptions-item label="处理速度">
+                后台异步处理，支持实时进度查看，大文件也能流畅操作，不阻塞前端交互
+              </el-descriptions-item>
+              <el-descriptions-item label="实时进度">
+                支持实时查看处理进度和预计完成时间，任务状态自动刷新
+              </el-descriptions-item>
+              <el-descriptions-item label="模型配置">
+                支持云端API（OpenAI/DeepSeek/千问等）和本地部署（Ollama/LM Studio），按需选择，<el-tag type="success">灵活可控</el-tag>
+              </el-descriptions-item>
+            </el-descriptions>
+          </div>
+
+          <div class="detail-section">
+            <h4>🔐 独创关联仿真脱敏（跨表一致性保障）</h4>
+            <p>传统随机脱敏会导致同一数据在不同表中脱敏结果不同，破坏数据关联关系。本平台独创的<strong>基于密钥的确定性脱敏算法</strong>：</p>
+            <ul>
+              <li>同一原始值 + 同一密钥 = 始终生成相同的脱敏结果</li>
+              <li>支持 <el-tag type="primary">30组独立密钥</el-tag>，实现不同业务场景的安全隔离</li>
+              <li>保证跨表、跨库数据关联关系的完整性</li>
+              <li>既保护隐私，又保留数据分析价值</li>
+            </ul>
+          </div>
+
+          <div class="detail-section">
+            <h4>🎯 智能规则推荐（降低人工配置成本）</h4>
+            <p>基于AI分析识别结果，系统自动为每列数据推荐最优脱敏规则：</p>
+            <el-timeline>
+              <el-timeline-item type="primary" icon="Search">
+                <strong>自动识别字段类型</strong>
+                <p>系统分析列名、数据格式、内容特征，判断字段类型（姓名、手机号、身份证号等）</p>
+              </el-timeline-item>
+              <el-timeline-item type="success" icon="MagicStick">
+                <strong>智能匹配脱敏规则</strong>
+                <p>根据字段类型自动推荐最适合的脱敏方式（遮盖、仿真、关联仿真等）</p>
+              </el-timeline-item>
+              <el-timeline-item type="warning" icon="View">
+                <strong>预览确认后执行</strong>
+                <p>展示10-20条数据前后对比，用户确认无误后执行全量脱敏，避免误操作</p>
+              </el-timeline-item>
+            </el-timeline>
+          </div>
+
+          <div class="detail-section">
+            <h4>📊 可视化安全确认（零风险操作）</h4>
+            <p>脱敏前强制展示数据前后对比，确保用户对脱敏效果满意后才执行全量处理，<strong>从根本上避免误操作导致的数据损坏</strong>。</p>
+          </div>
+
+          <el-alert
+            title="总结"
+            type="success"
+            show-icon
+            :closable="false"
+            style="margin-top: 15px"
+          >
+            <p>本平台不仅是脱敏工具，更是基于AI技术的<strong>全流程数据安全治理平台</strong>。从多语言智能识别、自动规则推荐、高性能异步处理到独创关联仿真，每个环节都体现了智能化、自动化、安全化的设计理念，真正实现"让数据安全治理变得简单"。</p>
+          </el-alert>
+        </el-collapse-item>
+
+        <!-- 任务监控与刷新 -->
+        <el-collapse-item name="10">
+          <template #title>
+            <div class="collapse-title">
+              <el-icon><RefreshRight /></el-icon>
+              <span>任务监控与刷新</span>
+            </div>
+          </template>
+
+          <el-alert
+            title="实时监控任务状态"
+            description="平台提供手动刷新和自动刷新两种任务监控方式，确保您随时掌握任务执行进度。"
+            type="info"
+            show-icon
+            :closable="false"
+            style="margin-bottom: 20px"
+          />
+
+          <h4>脱敏任务列表页面</h4>
+          <p>进入 <el-tag size="small">数据脱敏 → 脱敏任务</el-tag>，在页面右上角可以看到以下控制项：</p>
+
+          <div class="detail-section">
+            <h4>🔄 手动刷新</h4>
+            <p>点击 <el-button size="small"><el-icon><Refresh /></el-icon> 刷新</el-button> 按钮，立即获取最新任务状态和进度。</p>
+            <ul>
+              <li>适合需要精确控制刷新时机的场景</li>
+              <li>刷新时按钮显示加载状态，避免重复点击</li>
+              <li>刷新成功后会弹出提示</li>
+            </ul>
+          </div>
+
+          <div class="detail-section">
+            <h4>⏱️ 自动刷新（推荐）</h4>
+            <p>开启 <el-switch v-model="demoAutoRefresh" active-text="自动刷新" inline-prompt style="vertical-align: middle;" /> 开关后：</p>
+            <ul>
+              <li>当列表中存在<strong>进行中（running）</strong>或<strong>待处理（pending）</strong>的任务时，系统会自动每3秒刷新一次</li>
+              <li>所有任务完成后，自动刷新会自动停止，节省资源</li>
+              <li>智能更新机制：只更新状态/进度变化的行，避免整表闪烁</li>
+              <li>离开页面后自动停止刷新，避免后台不必要的请求</li>
+            </ul>
+            <el-alert
+              title="使用建议"
+              type="success"
+              show-icon
+              :closable="false"
+              style="margin-top: 10px"
+            >
+              <p>建议保持自动刷新开启，这样您可以实时看到任务进度变化，无需手动操作。</p>
+            </el-alert>
+          </div>
+
+          <div class="detail-section">
+            <h4>📋 任务详情页面</h4>
+            <p>点击任务列表中的 <el-button type="primary" size="small">详情</el-button> 按钮进入任务详情页：</p>
+            <ul>
+              <li>详情页同样支持手动刷新和自动刷新功能</li>
+              <li>自动刷新会实时更新任务进度、已处理行数、处理速度等指标</li>
+              <li>任务完成后会自动弹出完成提示</li>
+              <li>可在详情页直接下载脱敏结果和报告</li>
+            </ul>
+          </div>
+
+          <div class="detail-section">
+            <h4>任务状态说明</h4>
+            <el-descriptions :column="1" border>
+              <el-descriptions-item label="待处理 (pending)">
+                <el-tag type="info">待处理</el-tag> 任务已创建，等待系统调度执行
+              </el-descriptions-item>
+              <el-descriptions-item label="进行中 (running)">
+                <el-tag type="warning">进行中</el-tag> 任务正在执行，显示实时进度
+              </el-descriptions-item>
+              <el-descriptions-item label="已完成 (completed)">
+                <el-tag type="success">已完成</el-tag> 任务执行成功，可以下载结果
+              </el-descriptions-item>
+              <el-descriptions-item label="失败 (failed)">
+                <el-tag type="danger">失败</el-tag> 任务执行失败，请查看错误信息并重试
+              </el-descriptions-item>
+            </el-descriptions>
+          </div>
+        </el-collapse-item>
+
+        <!-- 常见问题 -->
+        <el-collapse-item name="11">
           <template #title>
             <div class="collapse-title">
               <el-icon><QuestionFilled /></el-icon>
@@ -632,10 +840,12 @@ import { ref } from 'vue'
 import {
   Star, Link, Search, Lock, Setting, QuestionFilled,
   Document, Connection, Brush, Sunny, Moon,
-  TrendCharts, DataBoard, TrophyBase, DocumentChecked, Cpu
+  TrendCharts, DataBoard, TrophyBase, DocumentChecked, Cpu,
+  Refresh, RefreshRight, MagicStick
 } from '@element-plus/icons-vue'
 
 const activeNames = ref(['1'])
+const demoAutoRefresh = ref(true)
 
 const fileFormats = [
   { name: 'Excel', ext: '.xlsx / .xls' },
@@ -682,6 +892,15 @@ const reportTypes = [
   { type: '识别报告', format: 'HTML / Markdown', description: '展示敏感数据识别结果和分布统计' },
   { type: '脱敏报告', format: 'HTML / Markdown', description: '展示脱敏处理详情、准确率、性能指标' }
 ]
+
+const multilingualSupport = [
+  { name: '中文', desc: '姓名、手机号、身份证', type: 'danger' },
+  { name: '英文', desc: '姓名、邮箱、信用卡', type: 'primary' },
+  { name: '日文', desc: '姓名、手机号、地址', type: 'warning' },
+  { name: '韩文', desc: '姓名、手机号', type: 'success' },
+  { name: '法文', desc: '姓名、邮箱', type: 'info' },
+  { name: '德文', desc: '姓名、邮箱', type: 'info' }
+]
 </script>
 
 <style scoped>
@@ -701,6 +920,11 @@ const reportTypes = [
   gap: 8px;
   font-size: 16px;
   font-weight: 500;
+  padding-left: 1.5em;
+}
+
+:deep(.el-collapse-item__content) {
+  padding-left: 1.5em;
 }
 
 .step-detail {
@@ -794,6 +1018,32 @@ const reportTypes = [
   background: linear-gradient(135deg, #210124 0%, #1a011c 100%);
 }
 
+.github-preview {
+  background: #f6f8fa;
+}
+.github-preview .preview-sidebar {
+  background: #1b1f23;
+}
+.github-preview .preview-content {
+  background: #f6f8fa;
+}
+
+.vue-classic-preview {
+  background: #f0f2f5;
+}
+.vue-classic-preview .preview-sidebar {
+  background: #001529;
+}
+.vue-classic-preview .preview-content {
+  background: #f0f2f5;
+}
+
+.preview-sidebar-white {
+  width: 30%;
+  height: 100%;
+  background: #ffffff;
+}
+
 .theme-name {
   display: flex;
   align-items: center;
@@ -808,5 +1058,18 @@ const reportTypes = [
   font-size: 12px;
   color: #909399;
   line-height: 1.5;
+}
+
+/* 语言支持卡片 */
+.lang-card {
+  text-align: center;
+  padding: 15px 10px;
+}
+
+.lang-desc {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 8px;
+  line-height: 1.4;
 }
 </style>

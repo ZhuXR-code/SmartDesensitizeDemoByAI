@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
@@ -15,9 +16,12 @@ from app.schemas.desensitization import (
 from app.schemas.common import ResponseModel
 from app.services.desensitization_engine import DesensitizationEngine
 from app.services.data_service import DataService
+from app.services.report_generator import ReportGenerator
 from app.core.config import settings
+from app.core.logger import get_logger
 
 router = APIRouter(prefix="/api/desensitization", tags=["数据脱敏"])
+logger = get_logger(__name__)
 
 
 def get_builtin_rules():
@@ -538,18 +542,10 @@ async def get_task_results(
 @router.post("/tasks/{task_id}/generate-report", response_model=ResponseModel)
 async def generate_report(task_id: int, db: Session = Depends(get_db)):
     """为脱敏任务生成报告"""
-    from app.services.report_generator import ReportGenerator
-    from app.models.dataset import Dataset
-    import uuid
     
     task = db.query(DesensitizationTask).filter(DesensitizationTask.id == task_id).first()
     if not task or task.status != "completed":
         raise HTTPException(status_code=400, detail="任务不存在或未完成")
-    
-    # 获取数据集信息
-    dataset = db.query(Dataset).filter(Dataset.id == task.dataset_id).first()
-    if not dataset:
-        raise HTTPException(status_code=404, detail="数据集不存在")
     
     # 检查是否有脱敏结果数据
     result_count = db.query(DesensitizationResult).filter(
@@ -557,147 +553,21 @@ async def generate_report(task_id: int, db: Session = Depends(get_db)):
     
     if result_count == 0:
         raise HTTPException(status_code=400, detail="没有脱敏结果数据，无法生成报告")
-    
+
     try:
-        # 构建字段规则映射（从脱敏结果中提取）
-        field_rules = {}
         results = db.query(DesensitizationResult).filter(
             DesensitizationResult.task_id == task_id).all()
-        
-        for r in results:
-            if r.column_name not in field_rules:
-                field_rules[r.column_name] = 0
-        
-        # 获取数据集的列数
-        total_columns = len(field_rules) if field_rules else 0
-        
-        # 从脱敏结果中构建 rule_coverage
-        from collections import defaultdict
-        from app.services.report_generator import RuleCoverage, DesensitizationAccuracy
-        
-        rule_stats = defaultdict(lambda: {"matched": 0, "rows": set(), "name": "", "type": ""})
-        col_stats = defaultdict(lambda: {"total": 0, "desensitized": 0, "sample_orig": "", "sample_des": "", "rule_id": 0, "rule_name": ""})
-        
-        for r in results:
-            # 统计规则覆盖情况
-            if r.rule_id:
-                rule_stats[r.rule_id]["matched"] += 1
-                rule_stats[r.rule_id]["rows"].add(r.row_index)
-                rule_stats[r.rule_id]["name"] = r.rule_name or "未知规则"
-                rule_stats[r.rule_id]["type"] = "mask"
-            
-            # 统计字段脱敏准确率
-            if r.column_name:
-                col_stats[r.column_name]["rule_id"] = r.rule_id or 0
-                col_stats[r.column_name]["rule_name"] = r.rule_name or "未知规则"
-                col_stats[r.column_name]["total"] += 1
-                
-                # 判断是否已脱敏（原始值和脱敏值不同）
-                if r.original_value and r.desensitized_value and r.original_value != r.desensitized_value:
-                    col_stats[r.column_name]["desensitized"] += 1
-                    if not col_stats[r.column_name]["sample_orig"]:
-                        col_stats[r.column_name]["sample_orig"] = str(r.original_value)[:50]
-                        col_stats[r.column_name]["sample_des"] = str(r.desensitized_value)[:50]
-        
-        # 构建 rule_coverage 列表
-        rule_coverage_list = []
-        for rule_id, stats in rule_stats.items():
-            coverage_rate = min(100.0, len(stats["rows"]) / task.total_rows * 100) if task.total_rows > 0 else 0
-            rule_coverage_list.append(RuleCoverage(
-                rule_id=rule_id,
-                rule_name=stats["name"],
-                rule_type=stats["type"],
-                matched_count=stats["matched"],
-                matched_rows=len(stats["rows"]),
-                coverage_rate=round(coverage_rate, 2)
-            ))
-        
-        # 按匹配次数排序
-        rule_coverage_list = sorted(rule_coverage_list, key=lambda x: x.matched_count, reverse=True)
-        
-        # 构建 accuracy_details 列表
-        accuracy_details_list = []
-        for col, stats in col_stats.items():
-            rate = stats["desensitized"] / stats["total"] * 100 if stats["total"] > 0 else 0
-            accuracy_details_list.append(DesensitizationAccuracy(
-                column_name=col,
-                rule_id=stats["rule_id"],
-                rule_name=stats["rule_name"],
-                total_values=stats["total"],
-                desensitized_count=stats["desensitized"],
-                accuracy_rate=round(rate, 2),
-                sample_original=stats["sample_orig"],
-                sample_desensitized=stats["sample_des"]
-            ))
-        
-        # 按准确率排序
-        accuracy_details_list = sorted(accuracy_details_list, key=lambda x: x.accuracy_rate, reverse=True)
-        
-        # 估算识别耗时（总耗时的30%作为识别时间）
-        total_duration_ms = task.duration_seconds * 1000 if task.duration_seconds else 0
-        detection_time_ms = total_duration_ms * 0.3
-        desensitization_time_ms = total_duration_ms * 0.7
-        
+
         # 生成报告
-        generator = ReportGenerator()
-        report_dir = os.path.join(settings.UPLOAD_DIR, "reports")
-        os.makedirs(report_dir, exist_ok=True)
+        generator = ReportGenerator(db)
         
         timestamp = int(time.time())
         unique_id = str(uuid.uuid4())[:8]
         
         # 生成HTML报告
         html_filename = f"report_{unique_id}_{timestamp}.html"
-        html_path = os.path.join(report_dir, html_filename)
-        
-        # 创建简单的报告对象
-        from datetime import datetime
-        from app.services.report_generator import ValidationReport, PerformanceMetrics
-        
-        report = ValidationReport(
-            report_id=unique_id,
-            report_name=f"脱敏报告 - {task.name}",
-            dataset_name=dataset.name,
-            created_at=datetime.now().isoformat(),
-            summary={
-                "total_rows": task.total_rows,
-                "total_columns": total_columns,
-                "configured_rules": len(field_rules),
-                "matched_sensitive_count": result_count,
-                "desensitized_count": result_count,
-                "overall_coverage_rate": 100.0,
-                "overall_accuracy_rate": 100.0,
-                "detection_time_ms": round(detection_time_ms, 2),
-                "desensitization_time_ms": round(desensitization_time_ms, 2),
-                "total_time_ms": round(total_duration_ms, 2),
-                # 新增指标
-                "sensitive_fields_count": total_columns,
-                "non_sensitive_fields_count": 0,
-                "total_matches": result_count,
-                "average_accuracy": 100.0
-            },
-            rule_coverage=rule_coverage_list,
-            accuracy_details=accuracy_details_list,
-            performance=PerformanceMetrics(
-                total_rows=task.total_rows,
-                total_columns=total_columns,
-                detection_time_ms=round(detection_time_ms, 2),
-                desensitization_time_ms=round(desensitization_time_ms, 2),
-                total_time_ms=round(total_duration_ms, 2),
-                rows_per_second=task.total_rows / task.duration_seconds if task.duration_seconds and task.duration_seconds > 0 else 0,
-                memory_peak_mb=round(task.total_rows * 0.001, 2),  # 估算内存使用
-                # 新增指标
-                sensitive_fields_count=total_columns,
-                non_sensitive_fields_count=0,
-                total_matches=result_count,
-                average_accuracy=100.0
-            ),
-            field_rules=field_rules,
-            recommendations=["脱敏任务已成功完成"]
-        )
-        
-        # 导出HTML报告
-        generator.export_html(report, html_path)
+        html_path = os.path.join(settings.UPLOAD_DIR, "reports", html_filename)
+        html_path = generator.generate_desensitization_html_report(task, results)
         
         # 尝试保存报告路径到数据库（如果字段存在）
         try:
@@ -717,261 +587,51 @@ async def generate_report(task_id: int, db: Session = Depends(get_db)):
 @router.get("/tasks/{task_id}/download-report")
 async def download_report(
     task_id: int,
-    format: str = "html",  # html, pdf, or markdown
+    report_format: str = "html",
     db: Session = Depends(get_db)
 ):
-    """下载脱敏任务报告 - 支持 HTML/PDF/Markdown 格式"""
+    """下载脱敏任务报告 - 支持 HTML/Markdown 格式"""
     from fastapi.responses import FileResponse
     
     task = db.query(DesensitizationTask).filter(DesensitizationTask.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="任务不存在")
     
-    # 初始化路径变量
-    html_path = None
-    pdf_path = None
-    md_path = None
+    if report_format not in ("html", "markdown"):
+        raise HTTPException(status_code=400, detail=f"不支持的格式: {report_format}，仅支持 html/markdown")
     
-    # 检查是否有 report_path 字段
-    report_path = None
     try:
-        report_path = getattr(task, 'report_path', None)
-    except:
-        report_path = None
-    
-    # 确定文件扩展名和路径
-    if format == "pdf":
-        if report_path:
-            pdf_path = report_path.replace('.html', '.pdf')
-    elif format == "markdown":
-        if report_path:
-            md_path = report_path.replace('.html', '.md')
-    else:
-        # HTML报告路径
-        if report_path:
-            html_path = report_path
-    
-    # 如果还没有报告，先生成
-    need_generate = False
-    if format == "html":
-        if not report_path or not os.path.exists(report_path):
-            need_generate = True
-    elif format == "pdf":
-        if not pdf_path or not os.path.exists(pdf_path):
-            need_generate = True
-    elif format == "markdown":
-        if not md_path or not os.path.exists(md_path):
-            need_generate = True
-    
-    if need_generate:
-        # 自动生成报告
-        try:
-            from app.services.report_generator import ReportGenerator
-            from app.models.dataset import Dataset
-            import uuid
-            from datetime import datetime
-            from app.services.report_generator import ValidationReport, PerformanceMetrics
-            
-            dataset = db.query(Dataset).filter(Dataset.id == task.dataset_id).first()
-            if not dataset:
-                raise HTTPException(status_code=404, detail="数据集不存在")
-            
-            result_count = db.query(DesensitizationResult).filter(
-                DesensitizationResult.task_id == task_id).count()
-            
-            field_rules = {}
-            results = db.query(DesensitizationResult).filter(
-                DesensitizationResult.task_id == task_id).all()
-            
-            for r in results:
-                if r.column_name not in field_rules:
-                    field_rules[r.column_name] = 0
-            
-            # 获取数据集的列数
-            total_columns = len(field_rules) if field_rules else 0
-            
-            # 估算识别耗时（总耗时的30%作为识别时间）
-            total_duration_ms = task.duration_seconds * 1000 if task.duration_seconds else 0
-            detection_time_ms = total_duration_ms * 0.3
-            desensitization_time_ms = total_duration_ms * 0.7
-            
-            generator = ReportGenerator()
-            report_dir = os.path.join(settings.UPLOAD_DIR, "reports")
-            os.makedirs(report_dir, exist_ok=True)
-            
-            timestamp = int(time.time())
-            unique_id = str(uuid.uuid4())[:8]
-            
-            # 从脱敏结果中构建 rule_coverage
-            from collections import defaultdict
-            from app.services.report_generator import RuleCoverage, DesensitizationAccuracy
-            
-            rule_stats = defaultdict(lambda: {"matched": 0, "rows": set(), "name": "", "type": ""})
-            col_stats = defaultdict(lambda: {"total": 0, "desensitized": 0, "sample_orig": "", "sample_des": "", "rule_id": 0, "rule_name": ""})
-            
-            for r in results:
-                # 统计规则覆盖情况
-                if r.rule_id:
-                    rule_stats[r.rule_id]["matched"] += 1
-                    rule_stats[r.rule_id]["rows"].add(r.row_index)
-                    rule_stats[r.rule_id]["name"] = r.rule_name or "未知规则"
-                    rule_stats[r.rule_id]["type"] = "mask"
-                
-                # 统计字段脱敏准确率
-                if r.column_name:
-                    col_stats[r.column_name]["rule_id"] = r.rule_id or 0
-                    col_stats[r.column_name]["rule_name"] = r.rule_name or "未知规则"
-                    col_stats[r.column_name]["total"] += 1
-                    
-                    # 判断是否已脱敏（原始值和脱敏值不同）
-                    if r.original_value and r.desensitized_value and r.original_value != r.desensitized_value:
-                        col_stats[r.column_name]["desensitized"] += 1
-                        if not col_stats[r.column_name]["sample_orig"]:
-                            col_stats[r.column_name]["sample_orig"] = str(r.original_value)[:50]
-                            col_stats[r.column_name]["sample_des"] = str(r.desensitized_value)[:50]
-            
-            # 构建 rule_coverage 列表
-            rule_coverage_list = []
-            for rule_id, stats in rule_stats.items():
-                coverage_rate = min(100.0, len(stats["rows"]) / task.total_rows * 100) if task.total_rows > 0 else 0
-                rule_coverage_list.append(RuleCoverage(
-                    rule_id=rule_id,
-                    rule_name=stats["name"],
-                    rule_type=stats["type"],
-                    matched_count=stats["matched"],
-                    matched_rows=len(stats["rows"]),
-                    coverage_rate=round(coverage_rate, 2)
-                ))
-            
-            # 按匹配次数排序
-            rule_coverage_list = sorted(rule_coverage_list, key=lambda x: x.matched_count, reverse=True)
-            
-            # 构建 accuracy_details 列表
-            accuracy_details_list = []
-            for col, stats in col_stats.items():
-                rate = stats["desensitized"] / stats["total"] * 100 if stats["total"] > 0 else 0
-                accuracy_details_list.append(DesensitizationAccuracy(
-                    column_name=col,
-                    rule_id=stats["rule_id"],
-                    rule_name=stats["rule_name"],
-                    total_values=stats["total"],
-                    desensitized_count=stats["desensitized"],
-                    accuracy_rate=round(rate, 2),
-                    sample_original=stats["sample_orig"],
-                    sample_desensitized=stats["sample_des"]
-                ))
-            
-            # 按准确率排序
-            accuracy_details_list = sorted(accuracy_details_list, key=lambda x: x.accuracy_rate, reverse=True)
-            
-            # 创建报告对象
-            report = ValidationReport(
-                report_id=unique_id,
-                report_name=f"脱敏报告 - {task.name}",
-                dataset_name=dataset.name,
-                created_at=datetime.now().isoformat(),
-                summary={
-                    "total_rows": task.total_rows,
-                    "total_columns": total_columns,
-                    "configured_rules": len(field_rules),
-                    "matched_sensitive_count": result_count,
-                    "desensitized_count": result_count,
-                    "overall_coverage_rate": 100.0,
-                    "overall_accuracy_rate": 100.0,
-                    "detection_time_ms": round(detection_time_ms, 2),
-                    "desensitization_time_ms": round(desensitization_time_ms, 2),
-                    "total_time_ms": round(total_duration_ms, 2),
-                    # 新增指标
-                    "sensitive_fields_count": total_columns,
-                    "non_sensitive_fields_count": 0,
-                    "total_matches": result_count,
-                    "average_accuracy": 100.0
-                },
-                rule_coverage=rule_coverage_list,
-                accuracy_details=accuracy_details_list,
-                performance=PerformanceMetrics(
-                    total_rows=task.total_rows,
-                    total_columns=total_columns,
-                    detection_time_ms=round(detection_time_ms, 2),
-                    desensitization_time_ms=round(desensitization_time_ms, 2),
-                    total_time_ms=round(total_duration_ms, 2),
-                    rows_per_second=task.total_rows / task.duration_seconds if task.duration_seconds and task.duration_seconds > 0 else 0,
-                    memory_peak_mb=round(task.total_rows * 0.001, 2),  # 估算内存使用
-                    # 新增指标
-                    sensitive_fields_count=total_columns,
-                    non_sensitive_fields_count=0,
-                    total_matches=result_count,
-                    average_accuracy=100.0
-                ),
-                field_rules=field_rules,
-                recommendations=["脱敏任务已成功完成"]
+        results = db.query(DesensitizationResult).filter(
+            DesensitizationResult.task_id == task_id).all()
+        
+        generator = ReportGenerator(db)
+        report_dir = os.path.join(settings.UPLOAD_DIR, "reports")
+        os.makedirs(report_dir, exist_ok=True)
+        
+        timestamp = int(time.time())
+        unique_id = str(uuid.uuid4())[:8]
+        
+        if report_format == "html":
+            filename = f"report_{unique_id}_{timestamp}.html"
+            filepath = os.path.join(report_dir, filename)
+            filepath = generator.generate_desensitization_html_report(task, results)
+            return FileResponse(
+                filepath,
+                filename=os.path.basename(filepath),
+                media_type="text/html",
+                headers={"Content-Disposition": f"inline; filename=\"{os.path.basename(filepath)}\""}
             )
-            
-            # 生成HTML报告（基础格式）
-            html_filename = f"report_{unique_id}_{timestamp}.html"
-            html_path = os.path.join(report_dir, html_filename)
-            generator.export_html(report, html_path)
-            
-            # 如果是PDF格式，尝试生成PDF
-            if format == "pdf":
-                pdf_filename = f"report_{unique_id}_{timestamp}.pdf"
-                pdf_path = os.path.join(report_dir, pdf_filename)
-                try:
-                    generator.export_pdf(report, pdf_path)
-                except Exception as e:
-                    print(f"PDF生成失败: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    # PDF失败时，降级为返回Markdown
-                    md_filename = f"report_{unique_id}_{timestamp}.md"
-                    md_path = os.path.join(report_dir, md_filename)
-                    generator.export_markdown(report, md_path)
-                    return FileResponse(
-                        md_path,
-                        filename=os.path.basename(md_path),
-                        media_type="text/markdown"
-                    )
-            
-            # 如果是Markdown格式
-            if format == "markdown":
-                md_filename = f"report_{unique_id}_{timestamp}.md"
-                md_path = os.path.join(report_dir, md_filename)
-                generator.export_markdown(report, md_path)
-            
-            # 尝试保存报告路径到数据库（如果字段存在）
-            try:
-                task.report_path = html_path
-                db.commit()
-            except:
-                pass  # 如果字段不存在，忽略错误
-            
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"生成报告失败: {str(e)}")
-    
-    # 返回对应的文件
-    if format == "pdf":
-        if not pdf_path or not os.path.exists(pdf_path):
-            raise HTTPException(status_code=404, detail="PDF报告文件不存在")
-        return FileResponse(
-            pdf_path,
-            filename=os.path.basename(pdf_path),
-            media_type="application/pdf"
-        )
-    elif format == "markdown":
-        if not md_path or not os.path.exists(md_path):
-            raise HTTPException(status_code=404, detail="Markdown报告文件不存在")
-        return FileResponse(
-            md_path,
-            filename=os.path.basename(md_path),
-            media_type="text/markdown"
-        )
-    else:
-        # 默认返回HTML
-        final_html_path = report_path or html_path
-        if not final_html_path or not os.path.exists(final_html_path):
-            raise HTTPException(status_code=404, detail="HTML报告文件不存在")
-        return FileResponse(
-            final_html_path,
-            filename=os.path.basename(final_html_path),
-            media_type="text/html"
-        )
+        else:
+            filename = f"report_{unique_id}_{timestamp}.md"
+            filepath = os.path.join(report_dir, filename)
+            filepath = generator.generate_desensitization_markdown_report(task, results)
+            return FileResponse(
+                filepath,
+                filename=os.path.basename(filepath),
+                media_type="text/markdown"
+            )
+    except Exception as e:
+        import traceback
+        logger.error(f"生成/下载报告失败 | task_id={task_id} | format={report_format} | {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"生成报告失败: {str(e)}")

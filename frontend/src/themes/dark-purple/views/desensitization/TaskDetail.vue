@@ -93,7 +93,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Refresh, ArrowDown } from '@element-plus/icons-vue'
+import { Refresh, ArrowDown, View } from '@element-plus/icons-vue'
 import { getDesensitizationTask, getDesensitizationResults, downloadDesensitizedFile, downloadReport } from '@/api/desensitization'
 
 const route = useRoute()

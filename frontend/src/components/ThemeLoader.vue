@@ -26,7 +26,9 @@ const loadComponent = async () => {
   try {
     let module
     if (theme === 'classic') {
-      module = await import(`@/themes/classic/views/${path}.vue`)
+      module = await import(`@/themes/vue-classic/views/${path}.vue`)
+    } else if (theme === 'vue-classic') {
+      module = await import(`@/themes/vue-classic/views/${path}.vue`)
     } else if (theme === 'dark-purple') {
       module = await import(`@/themes/dark-purple/views/${path}.vue`)
     } else if (theme === 'black-gold') {
@@ -35,9 +37,8 @@ const loadComponent = async () => {
     dynamicComponent.value = module.default
   } catch (error) {
     console.error(`Failed to load component: ${path} for theme: ${theme}`, error)
-    // Fallback to classic
     try {
-      const fallback = await import(`@/themes/classic/views/${path}.vue`)
+      const fallback = await import(`@/themes/vue-classic/views/${path}.vue`)
       dynamicComponent.value = fallback.default
     } catch (fallbackError) {
       console.error('Fallback also failed:', fallbackError)

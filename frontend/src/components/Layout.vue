@@ -74,6 +74,15 @@
           <el-menu-item index="/desensitization/tasks">脱敏任务</el-menu-item>
         </el-sub-menu>
 
+        <el-sub-menu index="/ai">
+          <template #title>
+            <el-icon><Cpu /></el-icon>
+            <span>AI智能</span>
+          </template>
+          <el-menu-item index="/ai/detection">AI识别与脱敏</el-menu-item>
+          <el-menu-item index="/ai/config">AI配置管理</el-menu-item>
+        </el-sub-menu>
+
         <el-sub-menu index="/report">
           <template #title>
             <el-icon><TrendCharts /></el-icon>
@@ -166,7 +175,7 @@ import { useThemeStore } from '@/stores/theme'
 import {
   HomeFilled, Document, Search, Lock, ArrowDown, QuestionFilled,
   Fold, Expand, TrendCharts, UserFilled, Setting, SwitchButton,
-  Sunny, Moon, Star
+  Sunny, Moon, Star, Cpu
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

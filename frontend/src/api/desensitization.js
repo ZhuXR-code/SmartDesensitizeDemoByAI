@@ -48,9 +48,9 @@ export function generateReport(id) {
   return request.post(`/api/desensitization/tasks/${id}/generate-report`)
 }
 
-export function downloadReport(id, format = 'html') {
+export function downloadReport(id, reportFormat = 'html') {
   return request.get(`/api/desensitization/tasks/${id}/download-report`, {
-    params: { format },
+    params: { report_format: reportFormat },
     responseType: 'blob'
   })
 }

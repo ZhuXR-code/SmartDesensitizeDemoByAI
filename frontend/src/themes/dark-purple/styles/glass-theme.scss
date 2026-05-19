@@ -311,6 +311,7 @@ body {
 
   &::placeholder {
     color: rgba(107, 114, 128, 0.5) !important;
+    font-family: $font-family !important;
   }
 }
 

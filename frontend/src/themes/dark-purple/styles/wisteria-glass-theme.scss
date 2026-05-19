@@ -246,9 +246,11 @@ body {
   font-size: 0.875rem;
   transition: all $duration-base $ease-out;
   outline: none;
+  font-family: $font-family;
 
   &::placeholder {
     color: rgba(222, 217, 226, 0.4);
+    font-family: $font-family;
   }
 
   &:hover {
@@ -575,9 +577,11 @@ body {
     font-size: 0.8125rem;
     color: $text-secondary;
     width: 100%;
+    font-family: $font-family;
 
     &::placeholder {
       color: rgba(239, 221, 141, 0.4);
+      font-family: $font-family;
     }
   }
 }

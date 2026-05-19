@@ -18,6 +18,21 @@ const routes = [
         meta: { title: '首页', icon: 'HomeFilled' }
       },
       {
+        path: 'workflow',
+        name: 'Workflow',
+        redirect: '/workflow/express',
+        meta: { title: '快速脱敏', icon: 'Lightning' },
+        children: [
+          {
+            path: 'express',
+            name: 'WorkflowExpress',
+            component: ThemeLoader,
+            props: { componentPath: 'workflow/WorkflowExpress' },
+            meta: { title: '快速脱敏工作流' }
+          }
+        ]
+      },
+      {
         path: 'datasets',
         name: 'Datasets',
         redirect: '/datasets/list',
@@ -143,6 +158,65 @@ const routes = [
             component: ThemeLoader,
             props: { componentPath: 'desensitization/TaskDetail' },
             meta: { title: '脱敏任务详情', hidden: true }
+          }
+        ]
+      },
+      {
+        path: 'ai',
+        name: 'Ai',
+        redirect: '/ai/detection/tasks',
+        meta: { title: 'AI智能', icon: 'Cpu' },
+        children: [
+          {
+            path: 'config',
+            name: 'AiConfig',
+            component: ThemeLoader,
+            props: { componentPath: 'ai/AiConfig' },
+            meta: { title: 'AI配置管理' }
+          },
+          {
+            path: 'detection',
+            name: 'AiDetection',
+            redirect: '/ai/detection/tasks',
+            meta: { title: 'AI识别', icon: 'Cpu' },
+            children: [
+              {
+                path: 'tasks',
+                name: 'AiDetectionTasks',
+                component: ThemeLoader,
+                props: { componentPath: 'ai/AiDetection' },
+                meta: { title: 'AI识别任务' }
+              },
+              {
+                path: 'tasks/:id',
+                name: 'AiDetectionTaskDetail',
+                component: ThemeLoader,
+                props: { componentPath: 'ai/AiDetection' },
+                meta: { title: 'AI识别详情', hidden: true }
+              }
+            ]
+          },
+          {
+            path: 'desensitization',
+            name: 'AiDesensitization',
+            redirect: '/ai/desensitization/tasks',
+            meta: { title: 'AI脱敏', icon: 'Cpu' },
+            children: [
+              {
+                path: 'tasks',
+                name: 'AiDesensitizationTasks',
+                component: ThemeLoader,
+                props: { componentPath: 'desensitization/TaskList' },
+                meta: { title: 'AI脱敏任务' }
+              },
+              {
+                path: 'tasks/:id',
+                name: 'AiDesensitizationTaskDetail',
+                component: ThemeLoader,
+                props: { componentPath: 'desensitization/TaskDetail' },
+                meta: { title: 'AI脱敏详情', hidden: true }
+              }
+            ]
           }
         ]
       },

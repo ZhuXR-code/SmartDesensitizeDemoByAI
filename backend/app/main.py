@@ -8,7 +8,7 @@ import traceback
 
 from app.core.config import settings
 from app.db.database import init_db
-from app.api import dataset, detection, desensitization, dashboard, datasource, report, platform_report
+from app.api import dataset, detection, desensitization, dashboard, datasource, report, platform_report, ai
 from app.core.logger import LoggerConfig, get_logger, log_api_request, log_api_response, log_api_error
 
 LoggerConfig.setup(
@@ -78,6 +78,7 @@ app.include_router(detection.router)
 app.include_router(desensitization.router)
 app.include_router(report.router)
 app.include_router(platform_report.router)
+app.include_router(ai.router)
 
 
 @app.on_event("startup")

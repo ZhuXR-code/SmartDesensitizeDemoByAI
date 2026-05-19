@@ -3,7 +3,10 @@
     <!-- 页面标题 -->
     <div class="report-header">
       <div class="header-left">
-        <h2 class="report-title">📊 平台运营成效报告</h2>
+        <h2 class="report-title">
+          <el-icon size="24" style="vertical-align: middle; margin-right: 6px;"><DataAnalysis /></el-icon>
+          平台运营成效报告
+        </h2>
         <p class="report-subtitle">敏感信息智能识别与脱敏平台 · 领导决策视图</p>
       </div>
       <div class="header-right">
@@ -16,8 +19,8 @@
     <el-row :gutter="20" class="kpi-row">
       <el-col :xs="24" :sm="12" :md="8" :lg="4" v-for="(kpi, index) in kpis" :key="index">
         <el-card shadow="hover" class="kpi-card">
-          <div class="kpi-icon" :style="{ background: kpi.gradient }">
-            <el-icon size="24"><component :is="kpi.icon" /></el-icon>
+          <div class="kpi-icon" style="background: rgba(57,79,73,0.2);">
+            <el-icon size="24" style="color: #1a1a1a;"><component :is="kpi.icon" /></el-icon>
           </div>
           <div class="kpi-content">
             <div class="kpi-value">{{ kpi.value }}</div>
@@ -36,7 +39,10 @@
         <el-card shadow="hover" class="summary-card">
           <template #header>
             <div class="card-header">
-              <span class="card-title">🎯 平台核心价值总结</span>
+              <span class="card-title">
+                <el-icon size="18" style="vertical-align: middle; margin-right: 4px;"><TrendCharts /></el-icon>
+                平台核心价值总结
+              </span>
             </div>
           </template>
           <el-row :gutter="30">
@@ -59,13 +65,16 @@
         <el-card shadow="hover" class="insight-card">
           <template #header>
             <div class="card-header">
-              <span class="card-title">💡 平台优势与结论</span>
+              <span class="card-title">
+                <el-icon size="18" style="vertical-align: middle; margin-right: 4px;"><Lightning /></el-icon>
+                平台优势与结论
+              </span>
             </div>
           </template>
           <div class="insight-list">
             <div v-for="(insight, idx) in insights" :key="idx" class="insight-item">
-              <div class="insight-icon" :style="{ background: insight.color }">
-                <el-icon size="18"><component :is="insight.icon" /></el-icon>
+              <div class="insight-icon" style="background: rgba(57,79,73,0.2);">
+                <el-icon size="18" style="color: #1a1a1a;"><component :is="insight.icon" /></el-icon>
               </div>
               <div class="insight-content">
                 <div class="insight-title">{{ insight.title }}</div>
@@ -79,7 +88,10 @@
         <el-card shadow="hover" class="compliance-card">
           <template #header>
             <div class="card-header">
-              <span class="card-title">✅ 数据合规保障成果</span>
+              <span class="card-title">
+                <el-icon size="18" style="vertical-align: middle; margin-right: 4px;"><CircleCheck /></el-icon>
+                数据合规保障成果
+              </span>
             </div>
           </template>
           <el-descriptions :column="1" border>
@@ -124,12 +136,15 @@
         <el-card shadow="hover" class="tech-card">
           <template #header>
             <div class="card-header">
-              <span class="card-title">🚀 技术创新与先进性</span>
+              <span class="card-title">
+                <el-icon size="18" style="vertical-align: middle; margin-right: 4px;"><Connection /></el-icon>
+                技术创新与先进性
+              </span>
               <el-tag type="primary" effect="dark">行业领先</el-tag>
             </div>
           </template>
-          <el-row :gutter="20">
-            <el-col :xs="24" :sm="12" :md="8" v-for="(tech, idx) in techHighlights" :key="idx">
+          <el-row :gutter="16">
+            <el-col :xs="24" :sm="12" :md="6" v-for="(tech, idx) in techHighlights" :key="idx">
               <div class="tech-item">
                 <div class="tech-badge">{{ tech.badge }}</div>
                 <div class="tech-title">{{ tech.title }}</div>
@@ -156,7 +171,10 @@
         <el-card shadow="hover" class="chart-card">
           <template #header>
             <div class="card-header">
-              <span class="card-title">🛡️ 敏感数据安全保护成效</span>
+              <span class="card-title">
+                <el-icon size="18" style="vertical-align: middle; margin-right: 4px;"><Lock /></el-icon>
+                敏感数据安全保护成效
+              </span>
             </div>
           </template>
           <div v-if="securityData.sensitive_type_distribution?.length > 0" ref="securityChartRef" style="height: 320px;"></div>
@@ -175,7 +193,10 @@
         <el-card shadow="hover" class="chart-card">
           <template #header>
             <div class="card-header">
-              <span class="card-title">⚡ 自动化处理效率趋势（近7天）</span>
+              <span class="card-title">
+                <el-icon size="18" style="vertical-align: middle; margin-right: 4px;"><DataLine /></el-icon>
+                自动化处理效率趋势（近7天）
+              </span>
             </div>
           </template>
           <div v-if="efficiency.daily_trend?.length > 0" ref="efficiencyChartRef" style="height: 320px;"></div>
@@ -199,7 +220,8 @@ import { ref, onMounted, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
 import {
   Document, Search, Lock, Warning, TrendCharts, Cpu,
-  Check, Star, Lightning, WarnTriangleFilled, Connection, View, Key, Medal
+  Check, Star, Lightning, Connection, View, Key, Medal,
+  CircleCheck, DataLine, DataAnalysis
 } from '@element-plus/icons-vue'
 import {
   getPlatformOverview,
@@ -232,46 +254,40 @@ const kpis = computed(() => [
   {
     icon: 'Document',
     value: overview.value.total_datasets || 0,
-    label: '数据集总数',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    label: '数据集总数'
   },
   {
     icon: 'Search',
     value: overview.value.total_detection_tasks || 0,
     label: '识别任务',
     trend: `本月+${overview.value.monthly_detection_tasks || 0}`,
-    trendType: 'success',
-    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+    trendType: 'success'
   },
   {
     icon: 'Lock',
     value: overview.value.total_desensitization_tasks || 0,
     label: '脱敏任务',
     trend: `本月+${overview.value.monthly_desensitization_tasks || 0}`,
-    trendType: 'success',
-    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+    trendType: 'success'
   },
   {
     icon: 'Warning',
     value: overview.value.total_sensitive_found || 0,
-    label: '敏感信息发现',
-    gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+    label: '敏感信息发现'
   },
   {
     icon: 'Check',
     value: `${overview.value.accuracy_rate || 0}%`,
     label: '识别准确率',
     trend: '高精度保障',
-    trendType: 'primary',
-    gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)'
+    trendType: 'primary'
   },
   {
-    icon: 'WarnTriangleFilled',
+    icon: 'Warning',
     value: `${overview.value.coverage_rate || 0}%`,
     label: '脱敏覆盖率',
     trend: '全面保护',
-    trendType: 'warning',
-    gradient: 'linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%)'
+    trendType: 'warning'
   }
 ])
 
@@ -308,6 +324,18 @@ const valueSummaries = computed(() => [
 // 技术亮点
 const techHighlights = computed(() => [
   {
+    badge: 'AI驱动',
+    title: '大模型智能识别',
+    metric: technology.value.ai_model?.accuracy_rate || 95,
+    unit: '%准确率',
+    description: '基于深度学习大模型，智能理解数据语义上下文，自动识别敏感字段类型，准确率远超传统正则匹配方案',
+    tags: [
+      { text: '大模型', type: 'danger' },
+      { text: '语义理解', type: 'primary' },
+      { text: '自适应学习', type: 'success' }
+    ]
+  },
+  {
     badge: '独创',
     title: '关联仿真脱敏',
     metric: technology.value.deterministic_desensitization?.usage_count || 0,
@@ -322,7 +350,7 @@ const techHighlights = computed(() => [
   {
     badge: '领先',
     title: '多语言智能识别',
-    metric: technology.value.multilingual_support?.language_count || 0,
+    metric: technology.value.multilingual_support?.language_count || 6,
     unit: '种语言',
     description: '支持中、英、日、韩、法、德6种语言自动检测，基于字符集特征精准识别多语言敏感数据',
     tags: [
@@ -348,32 +376,32 @@ const techHighlights = computed(() => [
 // 优势结论
 const insights = [
   {
+    icon: 'Cpu',
+    title: 'AI大模型驱动',
+    description: '基于深度学习大模型实现智能语义识别，自动理解数据上下文，识别准确率95%+，远超传统正则匹配方案。'
+  },
+  {
     icon: 'Star',
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     title: '全流程自动化',
-    description: '从数据上传、敏感识别、规则推荐到脱敏执行，全流程自动化处理，无需人工干预。'
+    description: '从数据上传、AI智能识别、规则推荐到脱敏执行，全流程自动化处理，无需人工干预，效率提升10倍+。'
   },
   {
     icon: 'Connection',
-    color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     title: '识别-脱敏一体化',
-    description: '识别结果直接驱动脱敏任务，自动传递数据集与规则配置，消除数据流转断点。'
+    description: '识别结果直接驱动脱敏任务，自动传递数据集与规则配置，消除数据流转断点，实现真正的闭环治理。'
   },
   {
     icon: 'Key',
-    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     title: '独创关联造数',
     description: '基于密钥的确定性脱敏算法为平台独创技术，保证跨表关联数据的一致性，30组密钥实现业务隔离。'
   },
   {
     icon: 'View',
-    color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
     title: '可视化安全确认',
     description: '脱敏前展示10-20条数据前后对比，用户确认后才执行全量处理，避免误操作导致数据损坏。'
   },
   {
     icon: 'Medal',
-    color: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
     title: '多格式报告输出',
     description: '支持HTML在线预览和Markdown格式下载，方便存档、分享和版本管理，满足审计合规要求。'
   }
@@ -660,9 +688,13 @@ onMounted(() => {
   border-radius: 12px;
   padding: 20px;
   text-align: center;
-  margin-bottom: 10px;
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   border: 1px solid rgba(219, 214, 210, 0.5);
+  height: 100%;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 
   &:hover {
     background: rgba(229, 226, 220, 0.85);

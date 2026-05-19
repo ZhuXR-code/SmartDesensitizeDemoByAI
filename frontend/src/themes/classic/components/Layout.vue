@@ -8,10 +8,6 @@
         <span v-if="!isCollapse" class="logo-text">敏感信息脱敏平台</span>
       </div>
 
-      <!-- 装饰线 -->
-      <div class="sidebar-divider" v-if="themeStore.isDarkTheme"></div>
-
-      <!-- 折叠按钮 -->
       <div class="collapse-btn" @click="toggleCollapse">
         <el-icon>
           <Fold v-if="!isCollapse" />
@@ -25,9 +21,9 @@
         :collapse="isCollapse"
         :collapse-transition="true"
         class="sidebar-menu"
-        :background-color="themeStore.isDarkTheme ? 'transparent' : '#001529'"
-        :text-color="themeStore.isDarkTheme ? 'rgba(239,221,141,0.85)' : '#bfcbd9'"
-        :active-text-color="themeStore.isDarkTheme ? '#F4FDAF' : '#409EFF'"
+        background-color="transparent"
+        text-color="#1d1d1f"
+        active-text-color="#0071e3"
       >
         <el-menu-item index="/dashboard">
           <el-tooltip
@@ -36,18 +32,32 @@
             placement="right"
             :show-arrow="false"
             :offset="12"
-            popper-class="sidebar-tooltip-glass"
           >
             <div class="menu-icon-wrap">
-              <el-icon><HomeFilled /></el-icon>
+              <el-icon><House /></el-icon>
             </div>
           </el-tooltip>
           <span>首页</span>
         </el-menu-item>
 
+        <el-menu-item index="/workflow/express">
+          <el-tooltip
+            :disabled="!isCollapse"
+            content="快速脱敏"
+            placement="right"
+            :show-arrow="false"
+            :offset="12"
+          >
+            <div class="menu-icon-wrap">
+              <el-icon><Lightning /></el-icon>
+            </div>
+          </el-tooltip>
+          <span>快速脱敏</span>
+        </el-menu-item>
+
         <el-sub-menu index="/datasets">
           <template #title>
-            <el-icon><Document /></el-icon>
+            <el-icon><FolderOpened /></el-icon>
             <span>数据集管理</span>
           </template>
           <el-menu-item index="/datasets/list">数据集列表</el-menu-item>
@@ -67,16 +77,25 @@
 
         <el-sub-menu index="/desensitization">
           <template #title>
-            <el-icon><Lock /></el-icon>
+            <el-icon><Key /></el-icon>
             <span>数据脱敏</span>
           </template>
           <el-menu-item index="/desensitization/rules">脱敏规则管理</el-menu-item>
           <el-menu-item index="/desensitization/tasks">脱敏任务</el-menu-item>
         </el-sub-menu>
 
+        <el-sub-menu index="/ai">
+          <template #title>
+            <el-icon><Cpu /></el-icon>
+            <span>AI智能</span>
+          </template>
+          <el-menu-item index="/ai/detection">AI识别与脱敏</el-menu-item>
+          <el-menu-item index="/ai/config">AI配置管理</el-menu-item>
+        </el-sub-menu>
+
         <el-sub-menu index="/report">
           <template #title>
-            <el-icon><TrendCharts /></el-icon>
+            <el-icon><DataAnalysis /></el-icon>
             <span>运营报表</span>
           </template>
           <el-menu-item index="/report/platform">平台运营成效</el-menu-item>
@@ -84,17 +103,12 @@
 
         <el-sub-menu index="/help">
           <template #title>
-            <el-icon><QuestionFilled /></el-icon>
+            <el-icon><Help /></el-icon>
             <span>帮助中心</span>
           </template>
           <el-menu-item index="/help/manual">用户操作手册</el-menu-item>
         </el-sub-menu>
       </el-menu>
-
-      <!-- 底部装饰 -->
-      <div v-if="!isCollapse && themeStore.isDarkTheme" class="sidebar-footer">
-        <div class="footer-glass"></div>
-      </div>
     </el-aside>
 
     <el-container>
@@ -105,7 +119,6 @@
           </el-breadcrumb>
         </div>
         <div class="header-actions">
-          <!-- 主题切换 -->
           <el-dropdown trigger="click" @command="handleThemeChange">
             <div class="theme-switcher">
               <el-icon size="16"><component :is="getThemeIcon()" /></el-icon>
@@ -127,7 +140,6 @@
             </template>
           </el-dropdown>
 
-          <!-- 用户信息 -->
           <div class="user-info">
             <el-dropdown>
               <div class="user-profile">
@@ -164,15 +176,14 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import {
-  HomeFilled, Document, Search, Lock, ArrowDown, QuestionFilled,
-  Fold, Expand, TrendCharts, UserFilled, Setting, SwitchButton,
-  Sunny, Moon, Star
+  House, FolderOpened, Search, Key, DataAnalysis, Help,
+  ArrowDown, Fold, Expand, UserFilled, Setting, SwitchButton,
+  Sunny, Moon, Star, Connection, Lock, Cpu, Lightning
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const themeStore = useThemeStore()
 
-// 侧边栏折叠状态
 const isCollapse = ref(false)
 
 const activeMenu = computed(() => route.path)
@@ -181,39 +192,38 @@ const currentTitle = computed(() => {
   return route.meta?.title || '敏感信息脱敏平台'
 })
 
-// 切换侧边栏折叠状态
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
 }
 
-// 获取当前主题图标
 const getThemeIcon = () => {
   const iconMap = {
     'classic': 'Sunny',
+    'vue-classic': 'Connection',
     'dark-purple': 'Moon',
     'black-gold': 'Star'
   }
   return iconMap[themeStore.currentTheme] || 'Sunny'
 }
 
-// 处理主题切换
 const handleThemeChange = (themeKey) => {
   themeStore.setTheme(themeKey)
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .layout-container {
   height: 100vh;
 }
 
 .sidebar {
-  background-color: #001529;
-  color: #fff;
-  transition: width 0.3s ease;
+  background-color: #ffffff;
+  color: #1d1d1f;
+  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border-right: 1px solid #e5e5ea;
 }
 
 .sidebar-collapsed {
@@ -226,7 +236,7 @@ const handleThemeChange = (themeKey) => {
   align-items: center;
   justify-content: center;
   padding: 0 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid #e5e5ea;
   white-space: nowrap;
   overflow: hidden;
   gap: 10px;
@@ -237,37 +247,32 @@ const handleThemeChange = (themeKey) => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: #0071e3;
 }
 
 .logo-text {
   margin-left: 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   transition: opacity 0.3s ease;
+  color: #1d1d1f;
+  letter-spacing: 0.3px;
 }
 
-/* 装饰线 */
-.sidebar-divider {
-  height: 1px;
-  margin: 0 20px;
-  background: linear-gradient(90deg, transparent, rgba(244, 253, 175, 0.15), transparent);
-}
-
-/* 折叠按钮 */
 .collapse-btn {
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #bfcbd9;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  transition: all 0.3s ease;
+  color: #86868b;
+  border-bottom: 1px solid #d2d2d7;
+  transition: all 0.2s ease;
 }
 
 .collapse-btn:hover {
-  color: #409EFF;
-  background-color: rgba(64, 158, 255, 0.1);
+  color: #0071e3;
+  background-color: rgba(0, 113, 227, 0.06);
 }
 
 .collapse-btn .el-icon {
@@ -281,124 +286,164 @@ const handleThemeChange = (themeKey) => {
   overflow-x: hidden;
 }
 
-/* 菜单图标包装器（用于tooltip定位） */
 .menu-icon-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-/* 菜单折叠时的样式 */
 .sidebar-menu.el-menu--collapse {
   width: 64px;
 }
 
+:deep(.sidebar-menu) {
+  .el-menu-item,
+  .el-sub-menu .el-sub-menu__title {
+    color: #1d1d1f !important;
+    background-color: transparent !important;
+    height: 44px;
+    line-height: 44px;
+    font-size: 14px;
+    font-weight: 450;
+    margin: 2px 8px;
+    border-radius: 6px;
+    width: auto;
+    padding: 0 12px !important;
+  }
+
+  .el-menu-item:hover,
+  .el-sub-menu .el-sub-menu__title:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+    color: #1d1d1f !important;
+  }
+
+  .el-menu-item.is-active {
+    background-color: rgba(0, 113, 227, 0.1) !important;
+    color: #0071e3 !important;
+    font-weight: 500;
+    border-right: none;
+  }
+
+  .el-sub-menu.is-active .el-sub-menu__title {
+    color: #0071e3 !important;
+    font-weight: 500;
+  }
+
+  .el-menu-item .el-icon,
+  .el-sub-menu .el-sub-menu__title .el-icon {
+    font-size: 18px;
+    margin-right: 8px;
+    color: inherit;
+  }
+}
+
+.el-sub-menu .el-menu {
+  background-color: transparent !important;
+}
+
+:deep(.el-sub-menu .el-menu) {
+  .el-menu-item {
+    padding-left: 44px !important;
+    font-size: 13px;
+    margin: 1px 8px;
+  }
+}
+
 .header {
-  background-color: #fff;
+  background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  border-bottom: 1px solid #d2d2d7;
+  box-shadow: none;
+  height: 56px;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
-/* 主题切换器 */
 .theme-switcher {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  background: rgba(64, 158, 255, 0.08);
-  border: 1px solid rgba(64, 158, 255, 0.2);
-  border-radius: 9999px;
+  padding: 6px 14px;
+  background: #f5f5f7;
+  border: 1px solid #d2d2d7;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.25s ease;
-  color: #409EFF;
+  transition: all 0.2s ease;
+  color: #1d1d1f;
   font-size: 13px;
 }
 
 .theme-switcher:hover {
-  background: rgba(64, 158, 255, 0.15);
-  border-color: rgba(64, 158, 255, 0.35);
+  background: #eaeaea;
+  border-color: #bfbfc3;
 }
 
 .theme-label {
   font-weight: 500;
 }
 
-/* 用户信息 */
-.user-info {
-  .user-profile {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    border-radius: 9999px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-  }
+.user-info .user-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-  .user-avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-  }
+.user-info .user-profile:hover {
+  background: #f5f5f7;
+}
 
-  .user-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: #606266;
-  }
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0071e3, #34c759);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
 
-  .dropdown-arrow {
-    color: #909399;
-    font-size: 12px;
-  }
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1d1d1f;
+}
+
+.dropdown-arrow {
+  color: #86868b;
+  font-size: 12px;
 }
 
 .main-content {
-  background-color: #f0f2f5;
-  padding: 20px;
+  background-color: #f5f5f7;
+  padding: 24px;
   overflow-y: auto;
 }
 
-/* 底部装饰 */
-.sidebar-footer {
-  padding: 16px;
-  position: relative;
-}
-
-.footer-glass {
-  height: 60px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(244, 253, 175, 0.08) 0%, rgba(239, 221, 141, 0.04) 100%);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(244, 253, 175, 0.08);
-  position: relative;
-  overflow: hidden;
-}
-
-/* 滚动条样式 */
 .sidebar-menu::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .sidebar-menu::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  background-color: #c7c7cc;
+  border-radius: 2px;
 }
 
 .sidebar-menu::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: #aeaeb2;
 }
 </style>

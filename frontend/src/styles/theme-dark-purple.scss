@@ -571,9 +571,11 @@
       font-size: 0.8125rem;
       color: $text-secondary;
       width: 100%;
+      font-family: $font-family;
 
       &::placeholder {
         color: rgba(239, 221, 141, 0.4);
+        font-family: $font-family;
       }
     }
   }
@@ -806,6 +808,7 @@
 
     &::placeholder {
       color: rgba(107, 114, 128, 0.5) !important;
+      font-family: $font-family !important;
     }
   }
 

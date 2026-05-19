@@ -8,6 +8,7 @@ import App from './App.vue'
 import router from './router'
 
 // 引入主题全局样式（通过 .theme-xxx 类名隔离）
+import './styles/theme-classic.scss'
 import './styles/theme-dark-purple.scss'
 import './styles/theme-black-gold.scss'
 
